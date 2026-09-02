@@ -1,0 +1,67 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: alphax-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-alphax}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-alphax_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-alphax}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-alphax} -d ${POSTGRES_DB:-alphax}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: alphax-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-alphax}:${POSTGRES_PASSWORD:-alphax_secret}@postgres:5432/${POSTGRES_DB:-alphax}
+      JWT_SECRET: ${JWT_SECRET:-change_me_in_prod_alphax_2026}
+      JWT_ALGORITHM: HS256
+      JWT_EXPIRE_MINUTES: 480
+      EXECUTOR_MODE: host
+      ALLOWED_TOOLS: nmap,msfvenom,msfconsole,hydra,hashcat,sqlmap,nikto,smbclient,psexec.py,wmiexec.py,secretsdump.py,crackmapexec,linpeas,winpeas,chisel,ligolo,scp,hashcat,nuclei,dirb,gobuster
+      VULNHUB_TARGETS: ${VULNHUB_TARGETS:-192.168.56.0/24,10.0.0.0/24}
+      CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      - ./backend:/app
+      - /usr/bin/nmap:/usr/bin/nmap:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: alphax-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - api
+    command: npm run dev -- --host 0.0.0.0 --port 3000
+
+volumes:
+  pgdata:
+
+networks:
+  default:
+    name: alphax-net
