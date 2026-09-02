@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import { useState, useEffect } from 'react'
 
-export default function PhasePanel({ engagementId, phase, token, onExecuted }: { engagementId: string; phase: number; token: string; onExecuted: ()=>void }) {
+export default function PhasePanel({ engagementId, phase, token, onExecuted, initialTool, initialParams }: { engagementId: string; phase: number; token: string; onExecuted: ()=>void; initialTool?: string; initialParams?: Record<string,string> }) {
   const headers = token ? { Authorization: `Bearer ${token}` } : {}
   const qc = useQueryClient()
   const [tool, setTool] = useState<string>('')
@@ -16,6 +16,24 @@ export default function PhasePanel({ engagementId, phase, token, onExecuted }: {
   })
 
   useEffect(()=>{ if(toolsQ.data?.length && !tool) { setTool(toolsQ.data[0].name); const p:Record<string,string>={}; for(const pr of toolsQ.data[0].params) if(pr.default) p[pr.name]=pr.default; setParams(p) } }, [toolsQ.data])
+
+  // Apply AI recommendation (initial tool + params) when arriving
+  useEffect(()=>{
+    if (!initialTool || !toolsQ.data) return
+    const spec = toolsQ.data.find((t:any) => t.name === initialTool)
+    if (!spec) return
+    setTool(initialTool)
+    const p: Record<string,string> = {}
+    if (initialParams) {
+      for (const pr of spec.params) {
+        if (initialParams[pr.name] !== undefined) p[pr.name] = String(initialParams[pr.name])
+        else if (pr.default) p[pr.name] = pr.default
+      }
+    } else {
+      for (const pr of spec.params) if (pr.default) p[pr.name] = pr.default
+    }
+    setParams(p)
+  }, [initialTool, initialParams, toolsQ.data])
 
   const onSelectTool = (name: string) => {
     setTool(name)

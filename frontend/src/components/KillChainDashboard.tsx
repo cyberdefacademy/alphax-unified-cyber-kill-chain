@@ -5,6 +5,7 @@ import AttackFlow from './AttackFlow'
 import PhasePanel from './PhasePanel'
 import LiveConsole from './LiveConsole'
 import KnowledgeGraph from './KnowledgeGraph'
+import AIAssistPanel from './AIAssistPanel'
 import { useEngagementWS } from '../hooks/useEngagementWS'
 
 const PHASES_META = [
@@ -13,6 +14,7 @@ const PHASES_META = [
 
 export default function KillChainDashboard({ engagementId, token }: { engagementId: string; token: string }) {
   const [currentPhase, setCurrentPhase] = useState(1)
+  const [aiPicked, setAiPicked] = useState<{ tool?: string; params?: Record<string,string> }>({})
   const headers = token ? { Authorization: `Bearer ${token}` } : {}
 
   const uuidValid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(engagementId)
@@ -95,13 +97,14 @@ export default function KillChainDashboard({ engagementId, token }: { engagement
           <div className="bg-slate-900 border border-slate-800 rounded">
             <div className="flex overflow-x-auto border-b border-slate-800">
               {PHASES_META.map(([id,label]) => (
-                <button key={id} onClick={()=>setCurrentPhase(id as number)} className={`px-3 py-2 text-[11px] whitespace-nowrap border-b-2 ${currentPhase===id ? 'border-cyan-400 text-cyan-300 bg-slate-800' : activePhase===(id as number) ? 'border-amber-400 text-amber-300' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
+                <button key={id} onClick={()=>{ setCurrentPhase(id as number); setAiPicked({}) }} className={`px-3 py-2 text-[11px] whitespace-nowrap border-b-2 ${currentPhase===id ? 'border-cyan-400 text-cyan-300 bg-slate-800' : activePhase===(id as number) ? 'border-amber-400 text-amber-300' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
                   {id}. {String(label).slice(0,10)}
                 </button>
               ))}
             </div>
-            <PhasePanel engagementId={engagementId} phase={currentPhase} token={token} onExecuted={()=>{ cmdsQ.refetch(); engQ.refetch(); }} />
+            <PhasePanel engagementId={engagementId} phase={currentPhase} token={token} onExecuted={()=>{ cmdsQ.refetch(); engQ.refetch(); }} initialTool={aiPicked.tool} initialParams={aiPicked.params} />
           </div>
+          <AIAssistPanel engagementId={engagementId} token={token} currentPhase={currentPhase} onPickedTool={(t, p) => { setAiPicked({ tool: t, params: p }); setCurrentPhase(activePhase) }} />
           <KnowledgeGraph targets={graphQ.data?.targets ?? []} credentials={graphQ.data?.credentials ?? []} commands={cmdsQ.data ?? []} />
         </div>
 

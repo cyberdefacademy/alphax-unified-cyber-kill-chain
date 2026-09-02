@@ -21,6 +21,14 @@ export function useEngagementWS(engagementId: string) {
         if (msg.type === 'console' && msg.line) setLines(prev => [...prev.slice(-2000), msg.line])
         else if (msg.type === 'command_finished') setLines(prev => [...prev, `\n[FINISHED ${msg.status} exit=${msg.exit_code}]\n`])
         else if (msg.type === 'knowledge_update') setLines(prev => [...prev, `\n[KNOWLEDGE] new host ${msg.target?.ip}\n`])
+        else if (msg.type === 'ai_pivot') {
+          const sug = (msg.suggestions || []).map((s: any) => `  - [${s.type}] ${s.action || s.tool_name || s.reason}`).join('\n')
+          setLines(prev => [...prev, `\n[AI PIVOT] P${msg.phase} ${msg.failed_tool} (exit ${msg.exit_code}):\n${sug}\n`])
+        }
+        else if (msg.type === 'ai_chain_step') setLines(prev => [...prev, `\n[AI CHAIN] P${msg.phase} ${msg.tool} ${msg.status}${msg.command_id ? ' cmd='+msg.command_id.slice(0,8) : ''}${msg.rationale ? ' — '+msg.rationale : ''}\n`])
+        else if (msg.type === 'ai_chain_step_finished') setLines(prev => [...prev, `[AI CHAIN] P${msg.phase} ${msg.tool} → ${msg.status} exit=${msg.exit_code}\n`])
+        else if (msg.type === 'ai_chain_halted') setLines(prev => [...prev, `[AI CHAIN] halted @P${msg.phase} — ${msg.reason}\n`])
+        else if (msg.type === 'command_approved') setLines(prev => [...prev, `[APPROVED] ${msg.command_id}\n`])
         else setLines(prev => [...prev, JSON.stringify(msg)])
       } catch { setLines(prev => [...prev, ev.data]) }
     }

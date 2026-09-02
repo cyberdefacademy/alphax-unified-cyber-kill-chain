@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from .models import Engagement, Command
 from .killchain_engine import UckcPhase, get_next_phase, can_transition, get_tools_for_phase
+from . import ai_assist
 
 class Orchestrator:
     """Conditional sequential + HITL orchestrator."""
@@ -32,6 +33,22 @@ class Orchestrator:
             # flag for operator
             eng.status = "blocked_needs_input"
             await self.db.commit()
+            # AI pivot suggestions (lazy import to avoid circular)
+            try:
+                from .routers.ws import manager
+                pivot = ai_assist.suggest_on_failure(
+                    command.phase, command.tool_name, command.stderr or "", command.exit_code
+                )
+                await manager.broadcast(command.engagement_id, {
+                    "type": "ai_pivot",
+                    "command_id": str(command.id),
+                    "phase": command.phase,
+                    "failed_tool": command.tool_name,
+                    "exit_code": command.exit_code,
+                    "suggestions": pivot.get("suggestions", []),
+                })
+            except Exception:
+                pass
 
     def suggest_next_tool(self, phase: int, failed_tool: str):
         tools = get_tools_for_phase(phase)
