@@ -92,16 +92,16 @@ export default function MonitoringWindow({ engagementId, token, wsEvents }: { en
     })
   }, [snapQ.data, snapQ.dataUpdatedAt])
 
-  if (snapQ.isLoading) return <div className="text-slate-500 text-xs p-3">Loading monitoring snapshot…</div>
+  if (snapQ.isLoading) return <div className="ax-fg-muted text-xs p-3">Loading monitoring snapshot…</div>
   const s = snapQ.data!
   const score = s.counters.threat_score
   const scoreColor = score < 30 ? '#22c55e' : score < 70 ? '#f59e0b' : '#f43f5e'
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded">
-      <div className="px-3 py-2 border-b border-slate-800 flex items-center justify-between">
-        <div className="text-xs font-semibold tracking-widest text-cyan-300">VISUAL MONITORING — {s.engagement.name.toUpperCase()}</div>
-        <div className="text-[10px] text-slate-500">live • refresh 4s • ws-events {wsEvents.length}</div>
+    <div className="ax-card border ax-border-base rounded">
+      <div className="px-3 py-2 border-b ax-border-base flex items-center justify-between">
+        <div className="text-xs font-semibold tracking-widest ax-accent">VISUAL MONITORING — {s.engagement.name.toUpperCase()}</div>
+        <div className="text-[10px] ax-fg-muted">live • refresh 4s • ws-events {wsEvents.length}</div>
       </div>
 
       <div className="grid grid-cols-12 gap-0">
@@ -113,44 +113,44 @@ export default function MonitoringWindow({ engagementId, token, wsEvents }: { en
               const active = p.phase === s.engagement.current_phase
               const done = p.phase < s.engagement.current_phase || p.last_status === 'succeeded' && p.phase === s.engagement.current_phase
               const failed = p.last_status === 'failed'
-              const color = active ? 'border-cyan-400 bg-cyan-500/15' : done ? 'border-emerald-500/40 bg-emerald-500/10' : failed ? 'border-red-500/40 bg-red-500/10' : 'border-slate-700 bg-slate-950'
+              const color = active ? ' ax-btn-primary //15' : done ? ' ax-btn-primary //10' : failed ? ' ax-btn-danger //10' : 'ax-border-base ax-input'
               return (
                 <div key={p.phase} className={`border ${color} rounded p-1.5 text-[10px] relative`}>
                   <div className="flex items-center justify-between">
-                    <span className="font-mono text-slate-400">P{p.phase}</span>
-                    <span className="text-slate-300 text-[9px] truncate ml-1">{PHASE_NAMES[p.phase]?.slice(0, 7)}</span>
+                    <span className="font-mono ax-fg-2">P{p.phase}</span>
+                    <span className="ax-fg-2 text-[9px] truncate ml-1">{PHASE_NAMES[p.phase]?.slice(0, 7)}</span>
                   </div>
                   {active && <div className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-cyan-300 animate-ping"></div>}
-                  <div className="mt-1 text-slate-500 truncate">{p.last_tool ?? '—'}</div>
+                  <div className="mt-1 ax-fg-muted truncate">{p.last_tool ?? '—'}</div>
                   <div className="flex items-center gap-1 text-[9px] mt-0.5">
-                    <span className="text-emerald-400">✓{p.succeeded}</span>
-                    <span className="text-red-400">✗{p.failed}</span>
-                    <span className="text-slate-500 ml-auto">{p.commands}cmd</span>
+                    <span className="ax-success">✓{p.succeeded}</span>
+                    <span className="ax-danger">✗{p.failed}</span>
+                    <span className="ax-fg-muted ml-auto">{p.commands}cmd</span>
                   </div>
                 </div>
               )
             })}
           </div>
           {/* Host map (SVG/Canvas) */}
-          <div className="bg-slate-950 border border-slate-800 rounded">
-            <div className="px-2 py-1 border-b border-slate-800 text-[11px] text-slate-400 font-mono">HOST MAP — OPERATOR → TARGETS</div>
+          <div className="ax-input border ax-border-base rounded">
+            <div className="px-2 py-1 border-b ax-border-base text-[11px] ax-fg-2 font-mono">HOST MAP — OPERATOR → TARGETS</div>
             <canvas ref={canvasRef} className="w-full" style={{ height: 200 }} />
           </div>
           {/* Timeline */}
-          <div className="bg-slate-950 border border-slate-800 rounded p-2">
-            <div className="text-[11px] text-slate-400 font-mono mb-1">COMMAND TIMELINE (latest 30)</div>
+          <div className="ax-input border ax-border-base rounded p-2">
+            <div className="text-[11px] ax-fg-2 font-mono mb-1">COMMAND TIMELINE (latest 30)</div>
             <div className="space-y-0.5 max-h-32 overflow-auto">
-              {s.timeline.length === 0 && <div className="text-[11px] text-slate-500">no commands yet</div>}
+              {s.timeline.length === 0 && <div className="text-[11px] ax-fg-muted">no commands yet</div>}
               {s.timeline.map((t) => {
-                const c = t.status === 'succeeded' ? 'border-emerald-500/40' : t.status === 'failed' ? 'border-red-500/40' : t.status === 'running' ? 'border-amber-500/40' : 'border-slate-700'
+                const c = t.status === 'succeeded' ? '' : t.status === 'failed' ? '' : t.status === 'running' ? 'border-amber-500/40' : 'ax-border-base'
                 const badge = t.status === 'succeeded' ? '✓' : t.status === 'failed' ? '✗' : t.status === 'running' ? '◐' : '·'
                 return (
                   <div key={t.id} className={`flex items-center gap-2 text-[10px] border-l-2 pl-1.5 ${c}`}>
-                    <span className="font-mono text-slate-500">{(t.ts || '').slice(11, 19)}</span>
-                    <span className="text-slate-400 w-6">P{t.phase}</span>
-                    <span className="text-cyan-300 w-20 truncate">{t.tool}</span>
-                    <span className="text-slate-300 flex-1 truncate font-mono">{t.raw}</span>
-                    <span className={t.status === 'succeeded' ? 'text-emerald-300' : t.status === 'failed' ? 'text-red-300' : 'text-amber-300'}>{badge} {t.status}{t.exit_code !== null ? `(${t.exit_code})` : ''}</span>
+                    <span className="font-mono ax-fg-muted">{(t.ts || '').slice(11, 19)}</span>
+                    <span className="ax-fg-2 w-6">P{t.phase}</span>
+                    <span className="ax-accent w-20 truncate">{t.tool}</span>
+                    <span className="ax-fg-2 flex-1 truncate font-mono">{t.raw}</span>
+                    <span className={t.status === 'succeeded' ? 'ax-success' : t.status === 'failed' ? 'ax-danger' : 'ax-warn'}>{badge} {t.status}{t.exit_code !== null ? `(${t.exit_code})` : ''}</span>
                   </div>
                 )
               })}
@@ -159,10 +159,10 @@ export default function MonitoringWindow({ engagementId, token, wsEvents }: { en
         </div>
 
         {/* Right: gauges + threats + WS pulse */}
-        <div className="col-span-4 border-l border-slate-800 p-3 space-y-3">
+        <div className="col-span-4 ax-border-base p-3 space-y-3">
           {/* Threat gauge SVG */}
-          <div className="bg-slate-950 border border-slate-800 rounded p-2">
-            <div className="text-[11px] text-slate-400 font-mono mb-1">THREAT SCORE</div>
+          <div className="ax-input border ax-border-base rounded p-2">
+            <div className="text-[11px] ax-fg-2 font-mono mb-1">THREAT SCORE</div>
             <svg viewBox="0 0 200 110" className="w-full">
               <defs>
                 <linearGradient id="g" x1="0" x2="1">
@@ -180,27 +180,27 @@ export default function MonitoringWindow({ engagementId, token, wsEvents }: { en
 
           {/* Counters */}
           <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-            <div className="bg-slate-950 border border-slate-800 rounded p-2">
-              <div className="text-slate-500">Targets</div>
-              <div className="text-cyan-300 text-lg font-bold font-mono">{s.targets.length}</div>
+            <div className="ax-input border ax-border-base rounded p-2">
+              <div className="ax-fg-muted">Targets</div>
+              <div className="ax-accent text-lg font-bold font-mono">{s.targets.length}</div>
             </div>
-            <div className="bg-slate-950 border border-slate-800 rounded p-2">
-              <div className="text-slate-500">Credentials</div>
-              <div className="text-emerald-300 text-lg font-bold font-mono">{s.credentials.length}</div>
+            <div className="ax-input border ax-border-base rounded p-2">
+              <div className="ax-fg-muted">Credentials</div>
+              <div className="ax-success text-lg font-bold font-mono">{s.credentials.length}</div>
             </div>
-            <div className="bg-slate-950 border border-slate-800 rounded p-2">
-              <div className="text-slate-500">Commands</div>
-              <div className="text-slate-200 text-lg font-bold font-mono">{s.counters.total_commands}</div>
+            <div className="ax-input border ax-border-base rounded p-2">
+              <div className="ax-fg-muted">Commands</div>
+              <div className="ax-fg text-lg font-bold font-mono">{s.counters.total_commands}</div>
             </div>
-            <div className="bg-slate-950 border border-slate-800 rounded p-2">
-              <div className="text-slate-500">5min</div>
-              <div className="text-amber-300 text-lg font-bold font-mono">{s.counters.recent_5min}</div>
+            <div className="ax-input border ax-border-base rounded p-2">
+              <div className="ax-fg-muted">5min</div>
+              <div className="ax-warn text-lg font-bold font-mono">{s.counters.recent_5min}</div>
             </div>
           </div>
 
           {/* Status bar chart */}
-          <div className="bg-slate-950 border border-slate-800 rounded p-2">
-            <div className="text-[11px] text-slate-400 font-mono mb-1">COMMAND STATUS</div>
+          <div className="ax-input border ax-border-base rounded p-2">
+            <div className="text-[11px] ax-fg-2 font-mono mb-1">COMMAND STATUS</div>
             <div className="space-y-1">
               {Object.entries(s.counters.by_status).map(([k, v]) => {
                 const max = Math.max(1, ...Object.values(s.counters.by_status))
@@ -208,8 +208,8 @@ export default function MonitoringWindow({ engagementId, token, wsEvents }: { en
                 const color = k === 'succeeded' ? '#22c55e' : k === 'failed' ? '#f43f5e' : k === 'running' ? '#f59e0b' : k === 'pending_approval' ? '#fbbf24' : k === 'approved' ? '#22d3ee' : '#94a3b8'
                 return (
                   <div key={k} className="text-[10px]">
-                    <div className="flex justify-between"><span style={{ color }}>{k}</span><span className="text-slate-400">{v}</span></div>
-                    <div className="h-1.5 bg-slate-800 rounded"><div style={{ width: pct + '%', background: color }} className="h-1.5 rounded"></div></div>
+                    <div className="flex justify-between"><span style={{ color }}>{k}</span><span className="ax-fg-2">{v}</span></div>
+                    <div className="h-1.5 ax-btn-secondary rounded"><div style={{ width: pct + '%', background: color }} className="h-1.5 rounded"></div></div>
                   </div>
                 )
               })}
@@ -217,27 +217,27 @@ export default function MonitoringWindow({ engagementId, token, wsEvents }: { en
           </div>
 
           {/* Top tools */}
-          <div className="bg-slate-950 border border-slate-800 rounded p-2">
-            <div className="text-[11px] text-slate-400 font-mono mb-1">TOP TOOLS</div>
+          <div className="ax-input border ax-border-base rounded p-2">
+            <div className="text-[11px] ax-fg-2 font-mono mb-1">TOP TOOLS</div>
             <div className="space-y-0.5 text-[11px]">
-              {s.counters.tools_top.length === 0 && <div className="text-slate-500">none</div>}
+              {s.counters.tools_top.length === 0 && <div className="ax-fg-muted">none</div>}
               {s.counters.tools_top.map(([t, n]) => (
-                <div key={t} className="flex justify-between"><span className="text-cyan-300">{t}</span><span className="text-slate-400">{n}</span></div>
+                <div key={t} className="flex justify-between"><span className="ax-accent">{t}</span><span className="ax-fg-2">{n}</span></div>
               ))}
             </div>
           </div>
 
           {/* Threats */}
-          <div className="bg-slate-950 border border-slate-800 rounded p-2">
-            <div className="text-[11px] text-slate-400 font-mono mb-1">THREATS ({s.threats.length})</div>
+          <div className="ax-input border ax-border-base rounded p-2">
+            <div className="text-[11px] ax-fg-2 font-mono mb-1">THREATS ({s.threats.length})</div>
             <div className="space-y-0.5 max-h-32 overflow-auto">
-              {s.threats.length === 0 && <div className="text-slate-500 text-[10px]">no threats</div>}
+              {s.threats.length === 0 && <div className="ax-fg-muted text-[10px]">no threats</div>}
               {s.threats.slice(-10).reverse().map(th => (
                 <div key={th.id} className="text-[10px] flex items-center gap-1">
-                  <span className={th.severity === 'high' ? 'text-red-400' : th.severity === 'medium' ? 'text-amber-400' : 'text-slate-400'}>●</span>
-                  <span className="text-slate-300 w-8">P{th.phase}</span>
-                  <span className="text-cyan-300 truncate flex-1">{th.tool}</span>
-                  <span className="text-slate-500">exit {th.exit_code}</span>
+                  <span className={th.severity === 'high' ? 'ax-danger' : th.severity === 'medium' ? 'ax-warn' : 'ax-fg-2'}>●</span>
+                  <span className="ax-fg-2 w-8">P{th.phase}</span>
+                  <span className="ax-accent truncate flex-1">{th.tool}</span>
+                  <span className="ax-fg-muted">exit {th.exit_code}</span>
                 </div>
               ))}
             </div>

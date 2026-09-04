@@ -53,21 +53,21 @@ export default function AIAssistPanel({ engagementId, token, onPickedTool, curre
   })
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded">
-      <div className="px-3 py-2 border-b border-slate-800 flex items-center justify-between">
-        <div className="text-xs font-semibold tracking-widest text-cyan-300">AI ASSIST — CHAIN & PIVOT ENGINE</div>
-        <div className="text-[10px] text-slate-500">recommend • chain • auto-pivot</div>
+    <div className="ax-card border ax-border-base rounded">
+      <div className="px-3 py-2 border-b ax-border-base flex items-center justify-between">
+        <div className="text-xs font-semibold tracking-widest ax-accent">AI ASSIST — CHAIN & PIVOT ENGINE</div>
+        <div className="text-[10px] ax-fg-muted">recommend • chain • auto-pivot</div>
       </div>
 
       <div className="p-3 space-y-3">
         {/* Status summary */}
-        <div className="bg-slate-950 border border-slate-800 rounded p-2 text-[11px] text-slate-300">
-          {statusQ.isLoading && <span className="text-slate-500">Loading context…</span>}
+        <div className="ax-input border ax-border-base rounded p-2 text-[11px] ax-fg-2">
+          {statusQ.isLoading && <span className="ax-fg-muted">Loading context…</span>}
           {statusQ.data && (
             <>
-              <div className="text-slate-400">{statusQ.data.summary}</div>
+              <div className="ax-fg-2">{statusQ.data.summary}</div>
               {statusQ.data.recommendation && (
-                <div className="mt-1 text-cyan-300">▶ Current phase rec: <code>{statusQ.data.recommendation.tool_name}</code> ({(statusQ.data.recommendation.confidence * 100).toFixed(0)}% conf) — {statusQ.data.recommendation.rationale}</div>
+                <div className="mt-1 ax-accent">▶ Current phase rec: <code>{statusQ.data.recommendation.tool_name}</code> ({(statusQ.data.recommendation.confidence * 100).toFixed(0)}% conf) — {statusQ.data.recommendation.rationale}</div>
               )}
             </>
           )}
@@ -75,41 +75,41 @@ export default function AIAssistPanel({ engagementId, token, onPickedTool, curre
 
         {/* Quick actions */}
         <div className="grid grid-cols-2 gap-2">
-          <button onClick={() => recommendMut.mutate(currentPhase)} disabled={recommendMut.isPending} className="px-2 py-2 rounded bg-cyan-500 text-slate-900 font-bold text-[11px] hover:bg-cyan-400 disabled:opacity-50">
+          <button onClick={() => recommendMut.mutate(currentPhase)} disabled={recommendMut.isPending} className="px-2 py-2 rounded ax-btn-primary / text-slate-900 font-bold text-[11px] hover:ax-btn-primary / disabled:opacity-50">
             {recommendMut.isPending ? '…' : `Recommend for P${currentPhase}`}
           </button>
-          <button onClick={() => pivotMut.mutate({ phase: 8, failed_tool: 'sliver', stderr: 'sliver: not found', exit_code: 127 })} disabled={pivotMut.isPending} className="px-2 py-2 rounded bg-amber-500 text-slate-900 font-bold text-[11px] hover:bg-amber-400 disabled:opacity-50">
+          <button onClick={() => pivotMut.mutate({ phase: 8, failed_tool: 'sliver', stderr: 'sliver: not found', exit_code: 127 })} disabled={pivotMut.isPending} className="px-2 py-2 rounded ax-btn-primary / text-slate-900 font-bold text-[11px] hover:ax-btn-primary / disabled:opacity-50">
             {pivotMut.isPending ? '…' : 'Simulate Pivot'}
           </button>
         </div>
 
         {/* Chain builder */}
-        <div className="bg-slate-950 border border-slate-800 rounded p-2 space-y-2">
-          <div className="text-[11px] text-slate-400">Chain builder (preview only)</div>
+        <div className="ax-input border ax-border-base rounded p-2 space-y-2">
+          <div className="text-[11px] ax-fg-2">Chain builder (preview only)</div>
           <div className="flex items-center gap-2 text-[11px]">
             <label className="flex items-center gap-1">
-              <span className="text-slate-400">start</span>
-              <input type="number" min={1} max={18} value={startPhase} onChange={e => setStartPhase(Math.max(1, Math.min(18, +e.target.value || 1)))} className="w-14 bg-slate-900 border border-slate-700 rounded px-2 py-1" />
+              <span className="ax-fg-2">start</span>
+              <input type="number" min={1} max={18} value={startPhase} onChange={e => setStartPhase(Math.max(1, Math.min(18, +e.target.value || 1)))} className="w-14 ax-card border ax-border-base rounded px-2 py-1" />
             </label>
             <label className="flex items-center gap-1">
-              <span className="text-slate-400">end</span>
-              <input type="number" min={1} max={18} value={endPhase} onChange={e => setEndPhase(Math.max(1, Math.min(18, +e.target.value || 18)))} className="w-14 bg-slate-900 border border-slate-700 rounded px-2 py-1" />
+              <span className="ax-fg-2">end</span>
+              <input type="number" min={1} max={18} value={endPhase} onChange={e => setEndPhase(Math.max(1, Math.min(18, +e.target.value || 18)))} className="w-14 ax-card border ax-border-base rounded px-2 py-1" />
             </label>
-            <button onClick={() => chainMut.mutate()} disabled={chainMut.isPending} className="px-2 py-1 rounded bg-slate-800 border border-slate-600 hover:bg-slate-700 text-[11px]">
+            <button onClick={() => chainMut.mutate()} disabled={chainMut.isPending} className="px-2 py-1 rounded ax-btn-secondary border ax-border-strong hover:ax-bg-elevated text-[11px]">
               {chainMut.isPending ? '…' : 'Preview'}
             </button>
-            <button onClick={() => execChainMut.mutate()} disabled={execChainMut.isPending} className="px-2 py-1 rounded bg-emerald-500 text-slate-900 font-bold hover:bg-emerald-400 text-[11px]">
+            <button onClick={() => execChainMut.mutate()} disabled={execChainMut.isPending} className="px-2 py-1 rounded ax-btn-primary / text-slate-900 font-bold hover:ax-btn-primary / text-[11px]">
               {execChainMut.isPending ? '…' : '▶ Run Chain'}
             </button>
           </div>
-          <div className="text-[10px] text-amber-300">Run Chain = auto-approve each step + auto-advance phase (still hits host subprocess; halts on blocked_needs_input).</div>
+          <div className="text-[10px] ax-warn">Run Chain = auto-approve each step + auto-advance phase (still hits host subprocess; halts on blocked_needs_input).</div>
         </div>
 
         {/* AI chat log */}
-        <div className="bg-black border border-slate-800 rounded p-2 h-40 overflow-auto text-[11px] font-mono">
+        <div className="bg-black border ax-border-base rounded p-2 h-40 overflow-auto text-[11px] font-mono">
           {aiMessages.map((m, i) => (
-            <div key={i} className={m.role === 'ai' ? 'text-cyan-300' : 'text-slate-100'}>
-              <span className="text-slate-500">[{m.role === 'ai' ? 'AI' : 'YOU'}]</span> {m.text.split('\n').map((l, j) => <div key={j} className={j === 0 ? '' : 'pl-3'}>{l}</div>)}
+            <div key={i} className={m.role === 'ai' ? 'ax-accent' : 'ax-fg'}>
+              <span className="ax-fg-muted">[{m.role === 'ai' ? 'AI' : 'YOU'}]</span> {m.text.split('\n').map((l, j) => <div key={j} className={j === 0 ? '' : 'pl-3'}>{l}</div>)}
             </div>
           ))}
         </div>

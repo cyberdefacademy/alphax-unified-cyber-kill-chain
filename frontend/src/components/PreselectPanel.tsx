@@ -77,12 +77,12 @@ export default function PreselectPanel({ engagementId, token, currentPhase, onPi
   }
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded">
-      <div className="px-3 py-2 border-b border-slate-800 flex items-center gap-2 flex-wrap">
-        <div className="text-xs font-semibold tracking-widest text-emerald-300">PRESELECT — SCRIPT LIBRARY</div>
+    <div className="ax-card border ax-border-base rounded">
+      <div className="px-3 py-2 border-b ax-border-base flex items-center gap-2 flex-wrap">
+        <div className="text-xs font-semibold tracking-widest ax-success">PRESELECT — SCRIPT LIBRARY</div>
         <div className="ml-auto flex gap-1 text-[10px]">
           {(['presets', 'nmap_opts', 'nse', 'kali', 'search'] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)} className={`px-2 py-1 rounded border ${tab===t ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300' : 'bg-slate-950 border-slate-700 text-slate-400'}`}>
+            <button key={t} onClick={() => setTab(t)} className={`px-2 py-1 rounded border ${tab===t ? 'ax-btn-primary //20 border-emerald-500 ax-success' : 'ax-input ax-border-base ax-fg-2'}`}>
               {t === 'nmap_opts' ? 'Nmap Opts' : t === 'nse' ? 'NSE' : t.charAt(0).toUpperCase()+t.slice(1)}
             </button>
           ))}
@@ -92,22 +92,22 @@ export default function PreselectPanel({ engagementId, token, currentPhase, onPi
       <div className="p-3 space-y-2">
         {/* Global search */}
         {tab === 'search' && (
-          <input value={globalQ} onChange={e => setGlobalQ(e.target.value)} placeholder="search nmap / nse / kali / presets…" className="w-full bg-slate-950 border border-slate-700 rounded px-3 py-1.5 text-xs" />
+          <input value={globalQ} onChange={e => setGlobalQ(e.target.value)} placeholder="search nmap / nse / kali / presets…" className="w-full ax-input border ax-border-base rounded px-3 py-1.5 text-xs" />
         )}
 
         {/* PRESETS */}
         {tab === 'presets' && (
           <div className="space-y-1 max-h-72 overflow-auto">
-            <div className="text-[10px] text-slate-500">{presetsQ.data?.count ?? '…'} curated preset(s) for P{currentPhase}</div>
+            <div className="text-[10px] ax-fg-muted">{presetsQ.data?.count ?? '…'} curated preset(s) for P{currentPhase}</div>
             {(presetsQ.data?.items ?? []).map((p: any) => (
-              <button key={p.id} onClick={() => insertPreset(p)} className="w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded px-2 py-1.5">
-                <div className="text-[11px] font-semibold text-emerald-300">{p.label}</div>
-                <div className="text-[10px] text-slate-500 font-mono truncate">{p.template}</div>
-                <div className="text-[10px] text-slate-600">P{p.phase} • {p.tool} • {p.tags?.join(' • ')}</div>
+              <button key={p.id} onClick={() => insertPreset(p)} className="w-full text-left ax-input hover:ax-btn-secondary border ax-border-base rounded px-2 py-1.5">
+                <div className="text-[11px] font-semibold ax-success">{p.label}</div>
+                <div className="text-[10px] ax-fg-muted font-mono truncate">{p.template}</div>
+                <div className="text-[10px] ax-fg-muted">P{p.phase} • {p.tool} • {p.tags?.join(' • ')}</div>
               </button>
             ))}
             {!presetsQ.isLoading && (presetsQ.data?.items ?? []).length === 0 && (
-              <div className="text-[11px] text-slate-500">No presets for P{currentPhase} — switch tabs to browse raw catalog.</div>
+              <div className="text-[11px] ax-fg-muted">No presets for P{currentPhase} — switch tabs to browse raw catalog.</div>
             )}
           </div>
         )}
@@ -117,17 +117,17 @@ export default function PreselectPanel({ engagementId, token, currentPhase, onPi
           <div className="space-y-2">
             <div className="flex flex-wrap gap-1">
               {NMAP_CATS.map(c => (
-                <button key={c} onClick={() => setNmapCat(c)} className={`px-2 py-0.5 rounded text-[10px] ${nmapCat===c?'bg-emerald-500/20 border border-emerald-500 text-emerald-300':'bg-slate-950 border border-slate-700 text-slate-400'}`}>
+                <button key={c} onClick={() => setNmapCat(c)} className={`px-2 py-0.5 rounded text-[10px] ${nmapCat===c?'ax-btn-primary //20 border border-emerald-500 ax-success':'ax-input border ax-border-base ax-fg-2'}`}>
                   {c}
                 </button>
               ))}
             </div>
             <div className="max-h-72 overflow-auto space-y-1">
               {(nmapOptsQ.data?.items ?? []).map((o: any) => (
-                <div key={o.flag} className="bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-[11px] flex items-center gap-2">
-                  <code onClick={() => insertFlag(o.flag)} className="text-cyan-300 cursor-pointer font-bold w-44 flex-shrink-0 hover:underline" title="Click to insert as scan_type">{o.flag}</code>
-                  <span className="text-slate-400 truncate">{o.name} — {o.desc}</span>
-                  <button onClick={() => copy(o.flag)} className="ml-auto px-1 py-0.5 text-[10px] bg-slate-800 border border-slate-700 rounded text-slate-300">copy</button>
+                <div key={o.flag} className="ax-input border ax-border-base rounded px-2 py-1.5 text-[11px] flex items-center gap-2">
+                  <code onClick={() => insertFlag(o.flag)} className="ax-accent cursor-pointer font-bold w-44 flex-shrink-0 hover:underline" title="Click to insert as scan_type">{o.flag}</code>
+                  <span className="ax-fg-2 truncate">{o.name} — {o.desc}</span>
+                  <button onClick={() => copy(o.flag)} className="ml-auto px-1 py-0.5 text-[10px] ax-btn-secondary border ax-border-base rounded ax-fg-2">copy</button>
                 </div>
               ))}
             </div>
@@ -138,8 +138,8 @@ export default function PreselectPanel({ engagementId, token, currentPhase, onPi
         {tab === 'nse' && (
           <div className="space-y-2">
             <div className="flex gap-2 items-center flex-wrap">
-              <input value={nseSearch} onChange={e => setNseSearch(e.target.value)} placeholder="search 612 NSE scripts…" className="flex-1 min-w-[180px] bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs" />
-              <select value={nseCat} onChange={e => setNseCat(e.target.value)} className="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-[11px]">
+              <input value={nseSearch} onChange={e => setNseSearch(e.target.value)} placeholder="search 612 NSE scripts…" className="flex-1 min-w-[180px] ax-input border ax-border-base rounded px-2 py-1 text-xs" />
+              <select value={nseCat} onChange={e => setNseCat(e.target.value)} className="ax-input border ax-border-base rounded px-2 py-1 text-[11px]">
                 <option value="all">all</option>
                 <option value="safe">safe</option>
                 <option value="vuln">vuln</option>
@@ -157,16 +157,16 @@ export default function PreselectPanel({ engagementId, token, currentPhase, onPi
                 <option value="version">version</option>
               </select>
             </div>
-            <div className="text-[10px] text-slate-500">{nseQ.data?.count ?? '…'} match(es)</div>
+            <div className="text-[10px] ax-fg-muted">{nseQ.data?.count ?? '…'} match(es)</div>
             <div className="max-h-72 overflow-auto space-y-1">
               {(nseQ.data?.items ?? []).map((s: any) => (
-                <div key={s.name} className="bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-[11px]">
+                <div key={s.name} className="ax-input border ax-border-base rounded px-2 py-1.5 text-[11px]">
                   <div className="flex items-center gap-2">
-                    <code onClick={() => insertTool({ cmd: 'nmap', name: s.name })} className="text-cyan-300 font-mono font-bold cursor-pointer hover:underline" title="Click to use nmap script">{s.name}</code>
-                    <span className="text-[9px] text-slate-500">[{s.categories?.join(' / ') || s.prefix}]</span>
-                    <button onClick={() => copy(`--script=${s.name}`)} className="ml-auto text-[9px] px-1 bg-slate-800 border border-slate-700 rounded text-slate-300">copy</button>
+                    <code onClick={() => insertTool({ cmd: 'nmap', name: s.name })} className="ax-accent font-mono font-bold cursor-pointer hover:underline" title="Click to use nmap script">{s.name}</code>
+                    <span className="text-[9px] ax-fg-muted">[{s.categories?.join(' / ') || s.prefix}]</span>
+                    <button onClick={() => copy(`--script=${s.name}`)} className="ml-auto text-[9px] px-1 ax-btn-secondary border ax-border-base rounded ax-fg-2">copy</button>
                   </div>
-                  <div className="text-[10px] text-slate-400 truncate">{s.desc || '(no description)'}</div>
+                  <div className="text-[10px] ax-fg-2 truncate">{s.desc || '(no description)'}</div>
                 </div>
               ))}
             </div>
@@ -177,27 +177,27 @@ export default function PreselectPanel({ engagementId, token, currentPhase, onPi
         {tab === 'kali' && (
           <div className="space-y-2">
             <div className="flex flex-wrap gap-1">
-              <button onClick={() => setKaliCat('all')} className={`px-2 py-0.5 rounded text-[10px] ${kaliCat==='all'?'bg-emerald-500/20 border border-emerald-500 text-emerald-300':'bg-slate-950 border border-slate-700 text-slate-400'}`}>all</button>
+              <button onClick={() => setKaliCat('all')} className={`px-2 py-0.5 rounded text-[10px] ${kaliCat==='all'?'ax-btn-primary //20 border border-emerald-500 ax-success':'ax-input border ax-border-base ax-fg-2'}`}>all</button>
               {['reconnaissance','credential-access','lateral-movement','execution','privilege-escalation','defense-evasion','discovery','forensics','command-and-control'].map(c => (
-                <button key={c} onClick={() => setKaliCat(c)} className={`px-2 py-0.5 rounded text-[10px] ${kaliCat===c?'bg-emerald-500/20 border border-emerald-500 text-emerald-300':'bg-slate-950 border border-slate-700 text-slate-400'}`}>
+                <button key={c} onClick={() => setKaliCat(c)} className={`px-2 py-0.5 rounded text-[10px] ${kaliCat===c?'ax-btn-primary //20 border border-emerald-500 ax-success':'ax-input border ax-border-base ax-fg-2'}`}>
                   {c}
                 </button>
               ))}
             </div>
-            <div className="text-[10px] text-slate-500">{kaliQ.data?.count ?? '…'} tool(s) tagged for P{currentPhase} + {kaliCat}</div>
+            <div className="text-[10px] ax-fg-muted">{kaliQ.data?.count ?? '…'} tool(s) tagged for P{currentPhase} + {kaliCat}</div>
             <div className="max-h-72 overflow-auto space-y-1">
               {(kaliQ.data?.items ?? []).map((t: any) => (
-                <div key={t.slug} className="bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-[11px]">
+                <div key={t.slug} className="ax-input border ax-border-base rounded px-2 py-1.5 text-[11px]">
                   <div className="flex items-center gap-2">
-                    <code onClick={() => insertTool(t)} className="text-cyan-300 font-mono font-bold cursor-pointer hover:underline" title={`Click to use ${t.cmd}`}>{t.name}</code>
-                    <span className="text-[9px] text-slate-500">cmd: {t.cmd}</span>
-                    <a href={t.url} target="_blank" rel="noreferrer" className="ml-auto text-[9px] text-slate-500 hover:text-cyan-300">kali.org ↗</a>
+                    <code onClick={() => insertTool(t)} className="ax-accent font-mono font-bold cursor-pointer hover:underline" title={`Click to use ${t.cmd}`}>{t.name}</code>
+                    <span className="text-[9px] ax-fg-muted">cmd: {t.cmd}</span>
+                    <a href={t.url} target="_blank" rel="noreferrer" className="ml-auto text-[9px] ax-fg-muted hover:ax-accent">kali.org ↗</a>
                   </div>
-                  <div className="text-[10px] text-slate-400">{t.desc}</div>
+                  <div className="text-[10px] ax-fg-2">{t.desc}</div>
                 </div>
               ))}
               {!kaliQ.isLoading && (kaliQ.data?.items ?? []).length === 0 && (
-                <div className="text-[11px] text-slate-500">No tools match. Try another category or switch to P{currentPhase}.</div>
+                <div className="text-[11px] ax-fg-muted">No tools match. Try another category or switch to P{currentPhase}.</div>
               )}
             </div>
           </div>
@@ -206,32 +206,32 @@ export default function PreselectPanel({ engagementId, token, currentPhase, onPi
         {/* SEARCH */}
         {tab === 'search' && globalQ.length >= 2 && (
           <div className="space-y-2 max-h-72 overflow-auto">
-            <div className="text-[10px] text-slate-500">
+            <div className="text-[10px] ax-fg-muted">
               {(searchQ.data?.nmap_options?.length ?? 0)} opts • {(searchQ.data?.nse_scripts?.length ?? 0)} NSE • {(searchQ.data?.kali_tools?.length ?? 0)} tools • {(searchQ.data?.presets?.length ?? 0)} presets
             </div>
             {searchQ.data?.nmap_options?.map((o: any) => (
-              <div key={o.flag} className="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-[11px]"><code className="text-cyan-300">{o.flag}</code> {o.name}</div>
+              <div key={o.flag} className="ax-input border ax-border-base rounded px-2 py-1 text-[11px]"><code className="ax-accent">{o.flag}</code> {o.name}</div>
             ))}
             {searchQ.data?.nse_scripts?.map((s: any) => (
-              <div key={s.name} className="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-[11px]"><code className="text-cyan-300">{s.name}</code> — {s.desc?.slice(0,80)}</div>
+              <div key={s.name} className="ax-input border ax-border-base rounded px-2 py-1 text-[11px]"><code className="ax-accent">{s.name}</code> — {s.desc?.slice(0,80)}</div>
             ))}
             {searchQ.data?.kali_tools?.map((t: any) => (
-              <div key={t.slug} className="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-[11px]"><code className="text-cyan-300">{t.name}</code> — {t.desc} <span className="text-slate-500">({t.category})</span></div>
+              <div key={t.slug} className="ax-input border ax-border-base rounded px-2 py-1 text-[11px]"><code className="ax-accent">{t.name}</code> — {t.desc} <span className="ax-fg-muted">({t.category})</span></div>
             ))}
             {searchQ.data?.presets?.map((p: any) => (
-              <button key={p.id} onClick={() => insertPreset(p)} className="block w-full text-left bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded px-2 py-1 text-[11px]">
-                <span className="text-emerald-300">{p.label}</span> <span className="text-slate-500">P{p.phase} {p.tool}</span>
+              <button key={p.id} onClick={() => insertPreset(p)} className="block w-full text-left ax-input hover:ax-btn-secondary border ax-border-base rounded px-2 py-1 text-[11px]">
+                <span className="ax-success">{p.label}</span> <span className="ax-fg-muted">P{p.phase} {p.tool}</span>
               </button>
             ))}
-            {searchQ.isLoading && <div className="text-[11px] text-slate-500">searching…</div>}
+            {searchQ.isLoading && <div className="text-[11px] ax-fg-muted">searching…</div>}
           </div>
         )}
 
         {picked && (
-          <div className="bg-emerald-900/20 border border-emerald-700/40 rounded p-2 text-[10px]">
-            <div className="text-emerald-300 font-bold">inserted → {picked.name || picked.label}</div>
-            {picked.template && <div className="text-slate-400 font-mono truncate">{picked.template}</div>}
-            <div className="text-slate-500">go to PhasePanel → click 1. Create Command → 2. Approve → 3. Execute</div>
+          <div className=" border border-emerald-700/40 rounded p-2 text-[10px]">
+            <div className="ax-success font-bold">inserted → {picked.name || picked.label}</div>
+            {picked.template && <div className="ax-fg-2 font-mono truncate">{picked.template}</div>}
+            <div className="ax-fg-muted">go to PhasePanel → click 1. Create Command → 2. Approve → 3. Execute</div>
           </div>
         )}
       </div>
