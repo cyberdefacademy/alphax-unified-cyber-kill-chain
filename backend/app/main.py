@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from .config import get_settings
 from .database import init_db
-from .routers import auth, engagements, commands, targets, ws, ai, monitoring
+from .routers import auth, engagements, commands, targets, ws, ai, monitoring, library
 
 settings = get_settings()
 
@@ -35,6 +35,7 @@ app.add_middleware(
 app.include_router(ws.router, tags=["ws"])
 app.include_router(ai.router, prefix="/api/v1")
 app.include_router(monitoring.router, prefix="/api/v1")
+app.include_router(library.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(engagements.router, prefix="/api/v1")
 app.include_router(commands.router, prefix="/api/v1")
