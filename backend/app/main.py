@@ -19,7 +19,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="AlphaX Cyber Kill-Chain - Director Console",
     description="Monolithic War Room for Unified Cyber Kill Chain (18 phases) - Human-in-the-Loop automation on VulnHub lab.",
-    version="0.1.0",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
@@ -43,7 +43,7 @@ app.include_router(targets.router, prefix="/api/v1")
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "service": "alphax-api", "version": "0.1.0", "executor": settings.executor_mode, "phases": 18}
+    return {"status": "ok", "service": "alphax-api", "version": "0.2.0", "executor": settings.executor_mode, "phases": 18}
 
 @app.get("/")
 async def root():

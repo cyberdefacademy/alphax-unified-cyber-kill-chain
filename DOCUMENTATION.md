@@ -1,9 +1,9 @@
 # AlphaX Cyber Kill-Chain — Complete Documentation
 ### Director's Console | Unified Cyber Kill Chain (18 Phases) | Kali Host Executor
 
-**Codename:** AlphaX Cyber Kill-Chain  •  **Stack:** FastAPI 0.115 + PostgreSQL 16 + React 18 Vite 5 + Tailwind 3  •  **Executor:** host `subprocess` on Kali  •  **Lab:** VulnHub  •  **Version:** 0.1.0
+**Codename:** AlphaX Cyber Kill-Chain  •  **Stack:** FastAPI + PostgreSQL + React 18 Vite 5 + Tailwind 3  •  **Executor:** host `subprocess` on Kali  •  **Labs:** VulnHub / OWASP Juice Shop (local)  •  **Version:** 0.2.0
 
-> **AUTHORIZED ENGAGEMENTS ONLY** — Every command requires explicit `pending_approval → approved → running` HITL gate. No auto-execution. Scope CIDR is enforced per engagement.
+> **AUTHORIZED ENGAGEMENTS ONLY** — Every command requires explicit `pending_approval → approved → running` HITL gate (AI chains auto-approve only after the operator explicitly launches them). Scope is enforced per engagement.
 
 ---
 
@@ -13,84 +13,110 @@
 3. [Repository Layout](#3-repository-layout)
 4. [Configuration (.env)](#4-configuration)
 5. [Installation — Option A: Docker](#5-installation--option-a-docker-recommended-when-daemon-available)
-6. [Installation — Option B: Host Kali (Current Verified Path)](#6-installation--option-b-host-kali-subprocess-verified-2026-09-02)
+6. [Installation — Option B: Host Kali (Current Verified Path)](#6-installation--option-b-host-kali-subprocess-verified)
 7. [Database Initialization](#7-database-initialization)
 8. [Health Checks](#8-health-checks)
 9. [Authentication](#9-authentication-single-operator-jwt)
-10. [Engagement Lifecycle](#10-engagement-lifecycle)
+10. [Engagement Lifecycle (incl. Delete)](#10-engagement-lifecycle)
 11. [War Room UI (React)](#11-war-room-ui)
-12. [API Usage — cURL Step-by-Step](#12-api-usage--curl-step-by-step)
-13. [18 Phases & Tool Mapping](#13-18-phases--tool-mapping-backendappkillchain_enginepy12)
-14. [Executor & HITL Gates](#14-executor--hitl-gates-backendappexecutorpy1)
-15. [Output Parsing & Knowledge Graph](#15-output-parsing--knowledge-graph)
-16. [WebSocket Live Console](#16-websocket-live-console)
-17. [VulnHub Lab Setup](#17-vulnhub-lab-setup)
-18. [Full Walkthrough — 127.0.0.1](#18-full-walkthrough--verified-against-127001)
-19. [Troubleshooting](#19-troubleshooting)
-20. [Security Considerations](#20-security-considerations)
-21. [Stopping / Restarting](#21-stopping--restarting)
-22. [Development Notes](#22-development-notes)
+12. [Dashboard Themes](#12-dashboard-themes)
+13. [AI Assist Layer](#13-ai-assist-layer-backendappai_assistpy1)
+14. [Scripts Library & Pre-Select](#14-scripts-library--pre-select-backendappscripts_librarypy1)
+15. [Visual Monitoring & Analytics](#15-visual-monitoring--analytics)
+16. [API Usage — cURL Step-by-Step](#16-api-usage--curl-step-by-step)
+17. [18 Phases & Tool Mapping](#17-18-phases--tool-mapping-backendappkillchain_enginepy12)
+18. [Executor & HITL Gates](#18-executor--hitl-gates-backendappexecutorpy1)
+19. [Output Parsing & Knowledge Graph](#19-output-parsing--knowledge-graph)
+20. [WebSocket Live Console & Events](#20-websocket-live-console--events)
+21. [VulnHub Lab Setup](#21-vulnhub-lab-setup)
+22. [Juice Shop Lab Setup & Test Report](#22-juice-shop-lab-setup--test-report)
+23. [Full Walkthrough — Juice Shop on 127.0.0.1:3005](#23-full-walkthrough--juice-shop-verified)
+24. [Troubleshooting](#24-troubleshooting)
+25. [Security Considerations](#25-security-considerations)
+26. [Stopping / Restarting](#26-stopping--restarting)
+27. [Development Notes](#27-development-notes)
 
 ---
 
 ## 1. Architecture
 ```
-┌─────────────────────┐      REST + WS :8001       ┌──────────────────────┐
-│  React Vite (3002)  │  ───────────────────────▶  │  FastAPI (8001)      │
-│  KillChainDashboard │  ◀───────────────────────  │  routers/engagements │
-│  AttackFlow 18-step │     JSON + WS broadcast     │  routers/commands    │──▶ asyncpg ──▶ PostgreSQL :5432
-│  PhasePanel ×18     │                             │  orchestrator.py     │    (alphax DB: engagements, targets,
-│  LiveConsole xterm  │                             │  killchain_engine.py │     credentials, commands, results,
-│  KnowledgeGraph     │                             │  executor.py ────────┼──▶ host subprocess (nmap, hydra,
-└─────────────────────┘                             │  parsers/nmap_parser │    msfvenom, impacket, etc.)
-                                                    └──────────────────────┘
+┌─────────────────────────┐      REST + WS :8001            ┌──────────────────────────┐
+│  React Vite (3002)      │  ───────────────────────────▶  │  FastAPI (8001)          │
+│  KillChainDashboard     │  ◀───────────────────────────  │  routers/engagements     │──▶ asyncpg ──▶ PostgreSQL :5432
+│  AttackFlow 18-step     │     JSON + WS broadcast         │  routers/commands (HITL) │    (alphax DB: engagements,
+│  PhasePanel ×18 (+raw)  │                                 │  routers/auth (JWT)      │     targets, credentials,
+│  PreselectPanel (5 tabs)│                                 │  routers/ai (assist)     │     commands, results,
+│  AIAssistPanel          │                                 │  routers/library (834)   │     asset_edges)
+│  MonitoringWindow       │                                 │  routers/monitoring      │
+│  VisualAnalytics        │                                 │  orchestrator.py         │──▶ host subprocess (nmap,
+│  LiveConsole + ticker   │                                 │  ai_assist.py (brain)    │    nuclei, nikto, sqlmap,
+│  KnowledgeGraph         │                                 │  killchain_engine.py     │    gobuster, msfvenom,
+│  ThemeSwitcher (4)      │                                 │  executor.py ────────────┤    hydra, impacket, etc.)
+└─────────────────────────┘                                 │  scripts_library.py      │
+                                                            │  parsers/nmap_parser     │
+                                                            └──────────────────────────┘
 ```
-- **Monolith** FastAPI serves REST + WS + Executor abstraction. Frontend standalone but proxied in dev (`vite.config.ts:9` → `http://localhost:8001`).
+- **Monolith** FastAPI serves REST + WS + Executor abstraction. Frontend standalone but proxied in dev (`vite.config.ts:10` → `http://localhost:8001`).
 - DB: SQLAlchemy 2.0 async (`backend/app/database.py:1`, `models.py:1`), `init_db()` at `lifespan` in `main.py:1`.
-- Executor mode `host` (this Kali) vs `docker` per `config.py:6` `EXECUTOR_MODE`.
+- Executor mode `host` (this Kali) vs `docker` per `config.py:9` `EXECUTOR_MODE`.
+- **AI layer** (`ai_assist.py`) is deterministic and rule-based — no external LLM calls. Every AI-built command still passes `is_command_allowed()` + deny patterns.
+- **Library layer** (`scripts_library.py`) serves 75 nmap flags + 612 live-scanned NSE scripts + 123 curated Kali tools + 24 ready-to-run presets.
 
 ## 2. Prerequisites
-On **Kali 7.0.12** verified:
+On **Kali** verified:
 
 | Component | Version | Check |
 |-----------|---------|-------|
-| Python | 3.13.14 | `python3 --version` |
-| Node | 22.23.2 | `node --version` |
-| PostgreSQL | 18.4 | `psql --version` + `pg_isready -h localhost -p 5432` |
+| Python | 3.13.x | `python3 --version` |
+| Node | 22.x | `node --version` |
+| PostgreSQL | 18.x | `psql --version` + `pg_isready -h localhost -p 5432` |
 | nmap | 7.99 | `nmap --version` |
-| pip / venv | 26.x | `pip --version` |
+| sqlmap | 1.10.x | `sqlmap --version` |
+| nikto | 2.6.0 | `nikto -Version` |
+| nuclei | v3.11.0 | `nuclei -version` |
+| gobuster | v3.8.2 | `gobuster --help` |
+| Docker | 29.x | `docker ps` (for Juice Shop target) |
 
-If `psql` reports no server: `sudo service postgresql start` (Kali `postgres 18/main` runs via `/var/lib/postgresql/18/main`).
-
-**Port notes (this host):** `8000` taken by NeuroSploit (`1144`), `3000`/`3001` taken → AlphaX verified on **`8001` (API)** and **`3002` (UI)**. Docker Desktop daemon at `~/.docker/desktop/docker.sock` was down on 2026-09-02; host mode is the active method.
+**Port notes (this host):** `8000` taken by NeuroSploit, `3000`/`3001` taken → AlphaX verified on **`8001` (API)** and **`3002` (UI)**.
 
 ## 3. Repository Layout
 ```
 .
-├── docker-compose.yml               # postgres:5432 + api:8001 + frontend:3002 (api bind-mounts /usr/bin/nmap)
-├── .env / .env.example             # DATABASE_URL, JWT_SECRET, ALLOWED_TOOLS, VULNHUB_TARGETS
+├── docker-compose.yml               # postgres:5432 + api:8001 + frontend:3002
+├── .env / .env.example             # DATABASE_URL, JWT_SECRET, ALLOWED_TOOLS (42), VULNHUB_TARGETS
 ├── backend/
 │   ├── Dockerfile
 │   ├── requirements.txt             # fastapi, uvicorn[standard], sqlalchemy[asyncio], asyncpg, pydantic-settings, python-jose, passlib, bcrypt==4.1.3, websockets, lxml, xmltodict
 │   └── app/
-│       ├── main.py                 # FastAPI lifespan, /health, CORS, include routers
-│       ├── config.py               # Settings via .env, allowed_tools_set
+│       ├── main.py                 # FastAPI lifespan, /health (v0.2.0), CORS, 8 routers
+│       ├── config.py               # Settings via .env, allowed_tools_set (42 defaults)
 │       ├── database.py             # create_async_engine + async_session + init_db()
 │       ├── models.py               # Engagement/Target/Credential/Command/Result/AssetEdge
 │       ├── schemas.py              # Pydantic DTOs
-│       ├── killchain_engine.py     # UckcPhase 1..18 + TOOL_MAPPING
+│       ├── killchain_engine.py     # UckcPhase 1..18 + TOOL_MAPPING (37 ToolSpec)
 │       ├── executor.py             # KaliExecutor + run_via_subprocess + parsers
-│       ├── orchestrator.py         # conditional flow, can_transition, blocked_needs_input
-│       ├── parsers/nmap_parser.py  # XML → {hosts:[{ip,hostname,ports}]}
-│       └── routers/auth.py, engagements.py, commands.py, targets.py, ws.py
+│       ├── orchestrator.py         # conditional flow + AI pivot broadcast on failure
+│       ├── ai_assist.py            # rule-based brain: recommend/analyze/chain/pivot
+│       ├── scripts_library.py      # 75 nmap opts + 612 NSE + 123 Kali tools + 24 presets
+│       ├── parsers/nmap_parser.py  # parse_nmap_xml + parse_nmap_text (regex fallback)
+│       └── routers/auth.py, engagements.py (CRUD + DELETE), commands.py (HITL),
+│                  targets.py, ws.py, ai.py (6 endpoints), monitoring.py (snapshot),
+│                  library.py (8 endpoints)
 └── frontend/
     ├── vite.config.ts              # proxy /api, /ws → 8001
-    ├── src/App.tsx                 # header + token/engagement inputs
-    ├── src/components/KillChainDashboard.tsx # War Room grid, stats, phase tabs
-    ├── src/components/AttackFlow.tsx         # 18-step progress bar
-    ├── src/components/PhasePanel.tsx         # tool dropdown + param form + Create→Approve→Execute
-    ├── src/components/LiveConsole.tsx        # WS streaming pre
-    └── src/hooks/useEngagementWS.ts         # ws://host:8001/ws/engagements/{id}
+    ├── tailwind.config.js
+    └── src/
+        ├── App.tsx                 # header + login + engagement selector + delete + ThemeSwitcher
+        ├── index.css               # 4 theme token sets + ax-* component classes + ticker
+        ├── components/AttackFlow.tsx        # 18-step progress bar
+        ├── components/PhasePanel.tsx        # tool dropdown + param form + raw override + HITL gate
+        ├── components/PreselectPanel.tsx    # 5-tab script library picker
+        ├── components/AIAssistPanel.tsx     # recommend / chain / pivot UI
+        ├── components/MonitoringWindow.tsx  # phase grid + host map + gauge + timeline
+        ├── components/VisualAnalytics.tsx   # ring + MITRE heatmap + attack graph + sparkline + ticker
+        ├── components/LiveConsole.tsx       # WS streaming console (incl. AI events)
+        ├── components/KnowledgeGraph.tsx    # hosts + creds cards
+        └── components/ThemeSwitcher.tsx     # 4-theme picker + scanline toggle
 ```
 
 ## 4. Configuration
@@ -100,7 +126,7 @@ Copy template and **change secrets before any real engagement**:
 cp .env.example .env
 # edit .env
 ```
-`.env.example:1` keys:
+Key `.env` entries (see `.env.example:1`):
 
 ```
 POSTGRES_USER=alphax
@@ -113,81 +139,61 @@ JWT_SECRET=change_me_in_prod_alphax_2026_32chars_min  # ← 32+ random chars (op
 JWT_ALGORITHM=HS256
 JWT_EXPIRE_MINUTES=480
 EXECUTOR_MODE=host
-ALLOWED_TOOLS=nmap,msfvenom,msfconsole,hydra,hashcat,sqlmap,nikto,smbclient,psexec.py,wmiexec.py,secretsdump.py,crackmapexec,linpeas,winpeas,chisel,ligolo,scp
+# 42 tools — must cover every ToolSpec.name in killchain_engine.py + nikto/gobuster/dirb/ffuf/feroxbuster/whatweb/wafw00f
+ALLOWED_TOOLS=nmap,masscan,nuclei,msfvenom,msfconsole,msfconsole_handler,curl,setoolkit,gophish,sqlmap,cron,mimikatz,amsi-bypass,sliver,chisel,ssh,ligolo,linpeas,winPEAS,bloodhound,sudo,windows-exploit-suggester,psexec.py,wmiexec.py,secretsdump.py,hashcat,crackmapexec,smbclient,scp,rclone,custom,report,hydra,nikto,winpeas,gobuster,dirb,ffuf,feroxbuster,whatweb,wafw00f
 VULNHUB_TARGETS=192.168.56.0/24,10.0.0.0/24
-CORS_ORIGINS=http://localhost:3002,http://localhost:3000
+CORS_ORIGINS=http://localhost:3002,http://127.0.0.1:3002,http://localhost:3000,http://127.0.0.1:3000
 ALPHAX_OPERATOR_USER=operator
 ALPHAX_OPERATOR_PASSWORD=AlphaX!2026
 ```
 
-`backend/app/config.py:3` loads via `pydantic-settings` (`env_file=".env"`).
+`backend/app/config.py:4` loads via `pydantic-settings` (`env_file=".env"`). The code default mirrors the full 42-tool list so fresh clones work even before `.env` is copied.
 
 ## 5. Installation — Option A: Docker (recommended when daemon available)
-> Requires `Docker Desktop` running. On 2026-09-02 it was down; restart Docker Desktop first.
 
 ```bash
-cp .env.example .env   # set POSTGRES_PASSWORD, JWT_SECRET, VULNHUB_TARGETS
-docker compose config   # verify: warning about version is harmless
+cp .env.example .env   # set POSTGRES_PASSWORD, JWT_SECRET
+docker compose config   # verify (the `version` warning is harmless)
 docker compose up --build -d
 docker compose ps
-curl -s http://localhost:8001/health  # or 8000 if you freed it
-# logs
+curl -s http://localhost:8001/health
 docker compose logs -f api
 ```
 
-`docker-compose.yml:1` defines `postgres` (healthcheck `pg_isready`), `api` (`uvicorn --host 0.0.0.0 --port 8000 --reload` with bind mount `./backend:/app` + `/usr/bin/nmap:ro`), `frontend` (`npm run dev -- --host 0.0.0.0 --port 3000`).
+`docker-compose.yml:1` defines `postgres` (healthcheck `pg_isready`), `api` (`uvicorn --host 0.0.0.0 --port 8001 --reload`, bind-mount `./backend:/app`), `frontend` (`npm run dev -- --host 0.0.0.0 --port 3002`).
 
-To run on 8001/3002 with Docker, override: `API_PORT=8001 FRONTEND_PORT=3002 docker compose up --build -d`.
-
-## 6. Installation — Option B: Host Kali Subprocess (Verified 2026-09-02)
-This is the **current working method** on this Kali host (Docker down, ports shifted).
+## 6. Installation — Option B: Host Kali Subprocess (Verified)
+Current working method on this host (ports shifted, host executor).
 
 ### 6.1 System deps & Postgres
 ```bash
-# ensure postgres listening
 pg_isready -h localhost -p 5432
-ss -tulpn | grep 5432
-# if not running (Kali uses pg 18/main):
-sudo service postgresql start   # or pg_ctl
+sudo service postgresql start   # if not running
 psql -h localhost -U postgres -c "ALTER USER alphax WITH PASSWORD 'alphax_secret_change_me';"
-# verify
 PGPASSWORD=alphax_secret_change_me psql -h localhost -U alphax -d alphax -c "SELECT 1;"
 ```
 
 ### 6.2 Python backend (host)
 ```bash
-# from repo root: /home/x3/Desktop/Alphax Projects/Alphax Unified Cyber Kill Chain
+# from repo root
 pip install --break-system-packages --no-cache-dir -r backend/requirements.txt
 # critical: bcrypt must be 4.1.3 (passlib 1.7.4 incompatible with bcrypt 5)
 pip install --break-system-packages --force-reinstall bcrypt==4.1.3
-
-# fix stale env: ensure .env DATABASE_URL matches the password you set above
-cp .env.example .env   # then edit if you changed password/JWT
-
-# start API (port 8001 because 8000 taken)
+cp .env.example .env   # then edit secrets if needed
 nohup python3 -m uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port 8001 > /tmp/alphax_api.log 2>&1 &
-sleep 3; cat /tmp/alphax_api.log | tail -n 20
-curl -s http://localhost:8001/health
-# → {"status":"ok","service":"alphax-api","version":"0.1.0","executor":"host","phases":18}
+sleep 3; curl -s http://localhost:8001/health
+# → {"status":"ok","service":"alphax-api","version":"0.2.0","executor":"host","phases":18}
 ```
-
-If `8001` also busy, pick any free: `--port 8002` and update `frontend/vite.config.ts:10` proxy accordingly.
 
 ### 6.3 Frontend
 ```bash
-cd frontend
-npm install                 # 211 packages, vite 5.4.21
-# patch proxy if API not on 8001 (already done for 8001):
-# vite.config.ts:10 '/api' -> http://localhost:8001 , '/ws' -> ws://localhost:8001
-# src/hooks/useEngagementWS.ts:11 port 8001
-# src/App.tsx:38 hint updated to 8001
+cd frontend && npm install          # vite 5.4.21, 142 modules
 nohup npm run dev -- --port 3002 --host 0.0.0.0 > /tmp/alphax_front.log 2>&1 &
-sleep 5; cat /tmp/alphax_front.log | tail -n 20
-curl -s -I http://localhost:3002/ | head
-# → 200 OK, Vite ready
+curl -s -I http://localhost:3002/ | head -n 3   # → 200 OK
+npm run build   # production check: tsc && vite build → dist/ (≈304kB JS)
 ```
 
-Keep both logs: `tail -f /tmp/alphax_api.log /tmp/alphax_front.log`.
+Keep logs: `tail -f /tmp/alphax_api.log /tmp/alphax_front.log`.
 
 ## 7. Database Initialization
 `backend/app/main.py:12` lifespan calls `database.py:13` `init_db()` → `Base.metadata.create_all` creates if not exists:
@@ -199,167 +205,166 @@ Keep both logs: `tail -f /tmp/alphax_api.log /tmp/alphax_front.log`.
 - `results` (command_id unique, raw_output, parsed_data JSONB)
 - `asset_edges`
 
-Existing tables from prior `alphax_platform` (`agent_logs` etc.) are left untouched; verify with:
-
-```bash
-psql -h localhost -U alphax -d alphax -c "\dt"
-# should list engagements, targets, credentials, commands, results, asset_edges alongside old tables
-```
-
-Migrations: `alembic.ini:1` stub; for production switch to `alembic upgrade head` instead of `create_all`.
+Verify: `psql -h localhost -U alphax -d alphax -c "\dt"`. `alembic.ini:1` is a stub; production should switch to `alembic upgrade head`.
 
 ## 8. Health Checks
 ```bash
 curl -s http://localhost:8001/health | python3 -m json.tool
 curl -s http://localhost:8001/ | python3 -m json.tool
-curl -s http://localhost:8001/docs | head   # Swagger UI
-curl -s http://localhost:3002/ | head       # Vite HTML
+# Swagger: http://localhost:8001/docs   OpenAPI: http://localhost:8001/openapi.json
+curl -s -I http://localhost:3002/ | head -n 3
 ```
 
 ## 9. Authentication (Single-Operator JWT)
 `backend/app/routers/auth.py:16` uses `OAuth2PasswordBearer` + `passlib`/`bcrypt` + `python-jose`.
 
-- User: `operator` (from `ALPHAX_OPERATOR_USER`)
-- Pass: `AlphaX!2026` (from `ALPHAX_OPERATOR_PASSWORD`)
-- Endpoint `POST /api/v1/auth/login` expects `application/x-www-form-urlencoded` (`username`+`password`).
+- User: `operator` (`ALPHAX_OPERATOR_USER`), Pass: `AlphaX!2026` (`ALPHAX_OPERATOR_PASSWORD`)
+- `POST /api/v1/auth/login` expects `application/x-www-form-urlencoded` (`username`+`password`).
 
 ```bash
 curl -s -X POST http://localhost:8001/api/v1/auth/login \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "username=operator&password=AlphaX!2026" | python3 -m json.tool
 # → {"access_token":"eyJ...","token_type":"bearer"}
-
 TOKEN=$(curl -s -X POST http://localhost:8001/api/v1/auth/login \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "username=operator&password=AlphaX!2026" | python3 -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
-echo $TOKEN
-# save
 export TOKEN
 ```
-
-All subsequent `/api/v1/engagements` and `/commands` require `Authorization: Bearer $TOKEN` (`routers/auth.py:44` `get_current_user`).
-
-JWT: `HS256`, `expire 480 min` (`config.py:7`), `exp` in payload.
-
-**Troubleshooting:** `ValueError: password cannot be longer than 72 bytes` → `bcrypt==4.1.3` not `5` (see §19). `Internal Server Error` on login → check `/tmp/alphax_api.log`, ensure `.env` readable (env_file relative to CWD repo root).
+All `/api/v1/engagements`, `/commands`, `/ai`, `/library`, `/monitoring` routes require `Authorization: Bearer $TOKEN`. JWT: `HS256`, 480 min expiry.
 
 ## 10. Engagement Lifecycle
-Engagement = authorized scope container. `models.py:52` `Engagement` defaults `status active`, `current_phase 1`.
+`models.py:52` `Engagement` defaults `status active`, `current_phase 1`. States: `draft → active → blocked_needs_input` (on failure, `orchestrator.py:24`) → `completed/archived`.
 
 ```bash
 # create
 curl -s -X POST http://localhost:8001/api/v1/engagements \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"name":"VulnHub Kioptrix","scope_cidr":"192.168.56.0/24"}' | python3 -m json.tool
-# → {"id":"80e7b1a0-a15b-4013-8aaf-2b99e34f8362", ... "current_phase":1}
-
-# list
+  -d '{"name":"Juice Shop 20.1.1 Local Test","scope_cidr":"127.0.0.1"}' | python3 -m json.tool
+# list / get / move phase
 curl -s http://localhost:8001/api/v1/engagements -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
-
-# get one
-EID=80e7b1a0-a15b-4013-8aaf-2b99e34f8362
+EID=<uuid>
 curl -s http://localhost:8001/api/v1/engagements/$EID -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
-
-# move phase (manual, normally auto-advances on success via orchestrator.py:18)
 curl -s -X PATCH http://localhost:8001/api/v1/engagements/$EID \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"current_phase":2}' | python3 -m json.tool
-
-# phases meta
-curl -s http://localhost:8001/api/v1/engagements/$EID/killchain/phases -H "Authorization: Bearer $TOKEN" | python3 -m json.tool | head -n 40
-# tools for phase 1
+# delete one (cascades targets/credentials/commands/results/edges) → 204
+curl -s -o /dev/null -w "DELETE one: %{http_code}\n" -X DELETE \
+  http://localhost:8001/api/v1/engagements/$EID -H "Authorization: Bearer $TOKEN"
+# delete ALL → 204
+curl -s -o /dev/null -w "DELETE all: %{http_code}\n" -X DELETE \
+  http://localhost:8001/api/v1/engagements -H "Authorization: Bearer $TOKEN"
+# phases / tools / graph
+curl -s http://localhost:8001/api/v1/engagements/$EID/killchain/phases -H "Authorization: Bearer $TOKEN" | python3 -m json.tool | head -n 20
 curl -s http://localhost:8001/api/v1/engagements/$EID/killchain/tools/1 -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
-
-# knowledge graph
 curl -s http://localhost:8001/api/v1/engagements/$EID/graph -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
 ```
-
-**States:** `draft → active → blocked_needs_input` (on failure, `orchestrator.py:24`) → `completed/archived`. `blocked_needs_input` blocks forward phase until operator resolves.
+In the UI, each engagement card has a red `×` (delete one, with confirm) and the section header has **Clear All** (bulk, with count confirm). Deleting the selected engagement clears the UUID field.
 
 ## 11. War Room UI
-Open `http://localhost:3002/` (or 3000 if Docker).
+Open `http://localhost:3002/` (hard refresh after upgrades: `Ctrl+Shift+R`).
 
-**Header:** `ALPHAX CYBER KILL-CHAIN` + `AUTHORIZED ENGAGEMENTS ONLY` banner. Top inputs:
+**Header:** gradient `ALPHAX CYBER KILL-CHAIN` title + `AUTHORIZED ENGAGEMENTS ONLY` banner + **ThemeSwitcher** + Logout + operator dot.
+**§1 Authenticate:** username/password + Login button (calls `/api/v1/auth/login`, auto-stores JWT).
+**§2 Select/Create:** UUID field with validation, clickable engagement cards (name/scope/phase/status), `×` per card, **Clear All**, create-by-name+CIDR form.
+**Stats grid** (`KillChainDashboard.tsx:89`): engagement, current phase (+WS state), Knowledge Graph counts, command counts.
+**AttackFlow** (`AttackFlow.tsx:1`): 18 buttons, accent = current, success = completed. Click opens that phase's panel.
+**PhasePanel** (`PhasePanel.tsx:1`): tool dropdown from `TOOL_MAPPING`, dynamic param form, template preview, **raw-command override** input (bypasses template assembly, still allow-listed), then `1. Create → 2. Approve ✓ → 3. Execute ▶`.
+**PreselectPanel** (see §14), **AIAssistPanel** (see §13), **MonitoringWindow** + **VisualAnalytics** (see §15), **LiveConsole** (see §20), **KnowledgeGraph**, **Recent Commands**.
 
-- **API Token (JWT)** — paste token from §9 (stored `localStorage:alphax_token`)
-- **Engagement ID (UUID)** — paste `80e7b1a0...` (stored `localStorage:alphax_eid`)
+## 12. Dashboard Themes
+`ThemeSwitcher.tsx:1` + `index.css:1` CSS-variable engine. Four professional themes, persisted in `localStorage:alphax_theme`, applied as `data-theme` on `<html>`:
 
-**Stats grid** (`KillChainDashboard.tsx:1`): Engagement name/scope, current phase, `WS connected/disconnected`, Knowledge Graph `hosts • creds`, commands `total • succeeded • pending_approval`.
+| Theme | Feel | Accent | Background |
+|-------|------|--------|------------|
+| **Neon Cyan** (default) | Director Console | `#22d3ee` cyan | `#060a12` deep navy |
+| **Tactical Green** | SOC analyst CRT phosphor | `#4ade80` green | `#04110a` dark green |
+| **Cyber Crimson** | Red-team threat intel | `#f43f5e` crimson | `#150407` dark red |
+| **Midnight Ops** | Aerospace steel + gold | `#fbbf24` gold | `#05060b` near-black |
 
-**AttackFlow** (`AttackFlow.tsx:1`): 18 buttons `1 Recon … 18 Objectives`, cyan  = current, emerald = completed, gray = pending. Click to open `PhasePanel` for that phase.
+All components use semantic `ax-*` classes (`ax-card`, `ax-input`, `ax-btn-primary/secondary/danger`, `ax-accent/success/warn/danger`, `ax-fg*`) so switching re-skins the entire War Room instantly. Optional **scanline overlay** (CRT vibe, `localStorage:alphax_scanlines`) toggles from the theme dropdown.
 
-**PhasePanel** (`PhasePanel.tsx:1`):
-1. Tool dropdown (from `TOOL_MAPPING` for that phase)
-2. Dynamic param form (examples: `target 192.168.56.101`, `scan_type -sV -sC`, `ports -p-`, `payload linux/x64/meterpreter/reverse_tcp`)
-3. **`1. Create Command (Pending Approval)`** → POST `/commands` creates `status pending_approval`
-4. Box shows `Command 22031370… — requires HITL gate` with **`2. Approve ✓`** → `POST .../approve` (`approved`) and **`3. Execute ▶`** → `POST .../execute` (`running` → streaming)
+## 13. AI Assist Layer (`backend/app/ai_assist.py:1`)
+Deterministic rule-based brain — **no external LLM calls**. Served by `backend/app/routers/ai.py:1`:
 
-**LiveConsole** (`LiveConsole.tsx:1`): WS streaming `stdout/stderr` line-by-line (`parser` sends chunks via `ws.py:19`), plus `[FINISHED succeeded exit=0]`. `Clear` button.
+| Endpoint | Purpose |
+|----------|---------|
+| `POST /api/v1/ai/{id}/recommend` `{phase}` | Best tool + params + rationale + confidence (0–1) + CVE hint |
+| `POST /api/v1/ai/{id}/chain` `{start_phase,end_phase}` | Ordered `ChainStep[]` preview with progressive context |
+| `POST /api/v1/ai/{id}/analyze` `{command_id}` | Insights (hosts/ports/CVEs) + next-phase recommendation |
+| `POST /api/v1/ai/{id}/pivot` `{phase,failed_tool,stderr,exit_code}` | Failure-specific pivot suggestions |
+| `POST /api/v1/ai/{id}/execute-chain` `{start_phase,end_phase,auto_advance}` | Background chain: queue → auto-approve (operator explicitly launched) → execute → auto-advance → halt on `blocked_needs_input` |
+| `GET /api/v1/ai/{id}/status` | Live context + current-phase recommendation + one-line summary |
 
-**KnowledgeGraph** (`KnowledgeGraph.tsx:1`): hosts (ip, hostname, open count, `P phase`) and credentials (username, hash_type). Auto-populated after Recon `nmap` parser.
+Key logic:
+- `recommend_tool()` picks payload by detected OS/services and flags CVE matches (`Apache 2.4.49–51 → CVE-2021-41773`, `vsftpd 2.3.4 → CVE-2011-2523`, `Samba 3.x → CVE-2017-7494`).
+- `suggest_on_failure()` pattern-matches: `exit 127` (install hint + same-phase fallback), `connection refused` (re-run Recon), `timeout` (reduce scope), sudo TTY, **gobuster SPA wildcard** (`--exclude-length` guidance), **nikto no-CGI** (normal for SPA), **sqlmap not-injectable** (level/risk/tamper escalation).
+- `orchestrator.py:31` broadcasts `ai_pivot` over WS on **every** command failure — no operator action needed.
+- `AIAssistPanel.tsx:1`: status summary + current-phase rec, `Recommend for P<n>` (auto-fills PhasePanel), `Simulate Pivot`, chain builder (`Preview` dry-run / `▶ Run Chain` background), AI chat log.
 
-**Recent Commands** box: last 20 commands with `P phase tool raw …` + status badge (`pending_approval` amber, `succeeded` emerald, `failed` red).
+Safety: AI output still passes `is_command_allowed()` + deny patterns + `assemble_command()`; "Run Chain" only removes the manual click after explicit operator launch.
 
-## 12. API Usage — cURL Step-by-Step
-Complete HITL flow for **Reconnaissance → nmap** (verified against `127.0.0.1`):
+## 14. Scripts Library & Pre-Select (`backend/app/scripts_library.py:1`)
+Canonical reference pulled from **`https://nmap.org/book/man.html`** (19kB), **`nmap -h`**, **`/usr/share/nmap/scripts/*.nse`** (612 scripts live-scanned), **`https://www.kali.org/tools/`** (146kB, 725 slugs, 17 MITRE categories). Totals: **75 nmap flags + 612 NSE scripts + 123 curated Kali tools + 24 presets = 834 selectable items.**
+
+`backend/app/routers/library.py:1` (8 endpoints, all JWT-gated):
+
+| Endpoint | Returns |
+|----------|---------|
+| `GET /library/nmap/options?category=` | 75 flags (13 categories) |
+| `GET /library/nmap/option-categories` | category list |
+| `GET /library/nmap/scripts?category=&search=&limit=` | live NSE index |
+| `GET /library/nse/categories` | 14 NSE categories |
+| `GET /library/kali?category=&search=&phase=` | 123 tools (17 categories, UCKC phase tags, kali.org URLs) |
+| `GET /library/kali/categories` | 17 categories |
+| `GET /library/presets?phase=&tool=` | 24 ready-to-run recipes |
+| `GET /library/search?q=` | cross-source one-shot search |
+
+`PreselectPanel.tsx:1` (5 tabs: **Presets / Nmap Opts / NSE / Kali / Search**): click any item → auto-fills PhasePanel tool+params (+ `raw_command` override for presets). NSE rows show categories; Kali rows link to `kali.org/tools/<slug>/`; every flag/script has a `copy` button.
+
+## 15. Visual Monitoring & Analytics
+`GET /api/v1/monitoring/{id}/snapshot` (`routers/monitoring.py:1`) aggregates: 18-cell `phase_grid`, target nodes (open ports/services), credentials, severity-classified threats (`127/124→high`, `1/255→medium`), last-30 timeline, counters (`by_status`, `tools_top`, `threat_score = targets×8 + creds×12 + high×6`, `total/recent_5min`). Polled every 4s; React Query key `['monitoring', id]` is **shared** between both visual components (single request).
+
+**MonitoringWindow** (`MonitoringWindow.tsx:1`): 3×6 phase grid (accent pulse = active), Canvas host map (operator → targets radial layout, DPI-scaled), SVG threat-score gauge (green→amber→red), counters, status bars, top tools, threats list, WS-event counter.
+
+**VisualAnalytics** (`VisualAnalytics.tsx:1`): SVG kill-chain progress **ring** (done/active/failed/pending + %), **MITRE tactic heatmap** (13 tactics TA0043–TA0040 with per-tactic bars), layered **attack-graph SVG** (operator → hosts → port chips → dashed cred links), **service distribution bars** (top 8), **commands-per-phase sparkline** (18 mini bars, red = failures), **live event ticker** (last 20 WS events, auto-drift, hover-pause, `prefers-reduced-motion` safe), session card.
+
+## 16. API Usage — cURL Step-by-Step
+Full HITL flow for Recon → nmap (verified against Juice Shop `127.0.0.1:3005`):
 
 ```bash
-TOKEN=...; EID=80e7b1a0-a15b-4013-8aaf-2b99e34f8362
-
-# 1. Get tools for phase 1
+TOKEN=...; EID=<uuid>
+# tools for phase 1
 curl -s http://localhost:8001/api/v1/engagements/$EID/killchain/tools/1 -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
-
-# 2. Create command (phase 1, tool nmap) — uses assemble_command in executor.py:35
-#    template "nmap {scan_type} {ports} {extra} {target}" with flag handling (scan_type/ports not quoted)
+# create (template assembly via executor.py:35; flag params unquoted, data params shlex-quoted)
 CID=$(curl -s -X POST http://localhost:8001/api/v1/engagements/$EID/commands \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"phase":1,"tool_name":"nmap","params":{"target":"127.0.0.1","scan_type":"-sV -oX -","ports":"-p 22,80","extra":""}}' \
+  -d '{"phase":1,"tool_name":"nmap","params":{"target":"127.0.0.1","scan_type":"-sV -oX -","ports":"-p 3005,80,22","extra":""}}' \
   | python3 -c "import sys,json;print(json.load(sys.stdin)['id'])")
-echo $CID  # 65705abf-297a-4ce3-9092-defe3ea501c5 (example)
-# raw_command built: "nmap -sV -oX - -p 22,80  127.0.0.1" (check via GET)
-
-# 3. Approve (HITL gate 1)
-curl -s -X POST http://localhost:8001/api/v1/engagements/$EID/commands/$CID/approve \
-  -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
-# → status approved
-
-# 4. Execute (HITL gate 2) — background task streams WS, runs via host subprocess
-curl -s -X POST http://localhost:8001/api/v1/engagements/$EID/commands/$CID/execute \
-  -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
-# → status running
-
-# 5. Poll
-sleep 8
-curl -s http://localhost:8001/api/v1/engagements/$EID/commands -H "Authorization: Bearer $TOKEN" | python3 -m json.tool | head -n 80
-# succeeded, stdout contains <?xml ... <nmaprun ...>
-
-# 6. Result + parsed hosts
-curl -s http://localhost:8001/api/v1/engagements/$EID/commands/$CID/result -H "Authorization: Bearer $TOKEN" | python3 -m json.tool | head -n 80
-# parsed_data: {"hosts":[{"ip":"127.0.0.1","hostname":"localhost","ports":[...]}],"parsed":true,"host_count":1}
-
-# 7. Graph (auto-fed)
-curl -s http://localhost:8001/api/v1/engagements/$EID/graph -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
-# {"targets":[{"ip":"127.0.0.1","ports":[...]}]}
-
-# 8. Alternative: raw_command direct (bypass template)
+# raw_command direct (bypasses template; still allow-listed) — used by Preselect presets + nikto/gobuster
 curl -s -X POST http://localhost:8001/api/v1/engagements/$EID/commands \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"phase":1,"tool_name":"nmap","raw_command":"nmap -sV -p 80 192.168.56.101","params":null}' | python3 -m json.tool
+  -d '{"phase":1,"tool_name":"nikto","raw_command":"nikto -h http://127.0.0.1:3005 -Tuning 1","params":{}}' | python3 -m json.tool
+# approve → execute (BackgroundTasks, streams WS)
+curl -s -X POST http://localhost:8001/api/v1/engagements/$EID/commands/$CID/approve -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
+curl -s -X POST http://localhost:8001/api/v1/engagements/$EID/commands/$CID/execute -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
+sleep 8
+curl -s http://localhost:8001/api/v1/engagements/$EID/commands -H "Authorization: Bearer $TOKEN" | python3 -m json.tool | head -n 40
+curl -s http://localhost:8001/api/v1/engagements/$EID/commands/$CID/result -H "Authorization: Bearer $TOKEN" | python3 -m json.tool | head -n 40
+curl -s http://localhost:8001/api/v1/engagements/$EID/graph -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
+# AI
+curl -s -X POST http://localhost:8001/api/v1/ai/$EID/recommend -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"phase":5}' | python3 -m json.tool
+curl -s -X POST http://localhost:8001/api/v1/ai/$EID/chain -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"start_phase":1,"end_phase":6}' | python3 -m json.tool | head -n 40
+curl -s http://localhost:8001/api/v1/ai/$EID/status -H "Authorization: Bearer $TOKEN" | python3 -m json.tool | head -n 20
+# library + monitoring
+curl -s "http://localhost:8001/api/v1/library/search?q=smb" -H "Authorization: Bearer $TOKEN" | python3 -m json.tool | head -n 30
+curl -s http://localhost:8001/api/v1/monitoring/$EID/snapshot -H "Authorization: Bearer $TOKEN" | python3 -m json.tool | head -n 40
 ```
 
-**Other phases** same pattern: `phase 5` `msfconsole` with `module`, `target`; `phase 13` `secretsdump.py` with `domain/user/password/target`, etc. See `killchain_engine.py:40` `TOOL_MAPPING`.
-
-**List targets added manually:**
-```bash
-curl -s http://localhost:8001/api/v1/engagements/$EID/targets -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
-curl -s -X POST http://localhost:8001/api/v1/engagements/$EID/targets -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"ip":"192.168.56.102","hostname":"win7","ports":[]}' | python3 -m json.tool
-```
-
-## 13. 18 Phases & Tool Mapping (`backend/app/killchain_engine.py:12`)
-| # | Phase | MITRE | Example Tools (`TOOL_MAPPING`) |
-|---|-------|-------|-------------------------------|
-|1|Reconnaissance|TA0043|nmap `-sV -sC`, masscan, nuclei|
+## 17. 18 Phases & Tool Mapping (`backend/app/killchain_engine.py:64`)
+| # | Phase | MITRE | Example Tools (`TOOL_MAPPING`, 37 ToolSpec) |
+|---|-------|-------|----------------------------------------------|
+|1|Reconnaissance|TA0043|nmap `-sV -sC`, masscan, nuclei (+ nikto/gobuster via raw) |
 |2|Weaponization|—|msfvenom `-p LHOST LPORT -f`|
 |3|Delivery|—|curl, msfconsole auxiliary|
 |4|Social Engineering|—|setoolkit, gophish|
@@ -378,126 +383,126 @@ curl -s -X POST http://localhost:8001/api/v1/engagements/$EID/targets -H "Author
 |17|Impact|TA0040|custom (explicit approval)|
 |18|Objectives|—|report|
 
-Each `ToolSpec` has `name, template, description, params: ParamSpec[], parser` (`nmap_xml`, `generic`). `list_phases()` and `get_tools_for_phase()` exposed via `/killchain/*`.
+Each `ToolSpec` has `name, template, description, params: ParamSpec[], parser`. `list_phases()` / `get_tools_for_phase()` back `/killchain/*`. State machine: `can_transition` (forward-1 / back-any / stay), auto-advance on success, `blocked_needs_input` on failure.
 
-## 14. Executor & HITL Gates (`backend/app/executor.py:1`)
-- **Allow-list** `config.py:8` `ALLOWED_TOOLS` + **deny patterns** (`rm -rf /`, `mkfs.`, fork bomb, `dd of=/dev/`, `shutdown`).
-- **Assemble** `assemble_command()` — flag params (`scan_type, ports, extra`) are NOT `shlex.quote`d as single quoted string; data params (`target, user, password`) ARE quoted. Prevents `nmap '-sV -oX -'` bug fixed 2026-09-02.
-- **Run** `run_via_subprocess()` (`asyncio.create_subprocess_shell`, streamed `readline` → `ws_broadcast` `type:console` per line, timeout 300s, kill on timeout exit 124).
-- **Gates** `routers/commands.py:14` `create → pending_approval`; `approve → approved` (sets `approved_by`); `execute → running` (BackgroundTasks) → `succeeded/failed` + `Result` row + `orchestrator.on_command_finished()` (auto-advance `current_phase` on success, else `blocked_needs_input`).
-- **Host vs Docker:** `EXECUTOR_MODE=host` uses shell directly; Docker would `docker exec kali <cmd>` (not used here, daemon down).
+## 18. Executor & HITL Gates (`backend/app/executor.py:1`)
+- **Allow-list** (42 tools, §4) + **deny patterns** (`rm -rf /`, `mkfs.`, fork bomb, `dd of=/dev/`, `shutdown`…).
+- **Assemble** `assemble_command()`: flag params (`scan_type, ports, extra, wordlist, severity`) unquoted + sanitized; data params `shlex.quote`d.
+- **Run** `run_via_subprocess()` (`asyncio.create_subprocess_shell`, per-line WS stream, 300s timeout → exit 124).
+- **Gates** `routers/commands.py:14` `pending_approval → approved → running → succeeded/failed/blocked`; `execute` uses `BackgroundTasks`; `orchestrator.on_command_finished()` auto-advances or blocks (+ `ai_pivot` broadcast).
 
-## 15. Output Parsing & Knowledge Graph
-- `parsers/nmap_parser.py:1` `parse_nmap_xml()` via `xml.etree` → `{hosts:[{ip,hostname,ports:[{port,protocol,state,service,version}]}]}`. Fallback `parse_nmap_grepable()`.
-- `parsers/generic.py:1` preview len.
-- On `hosts` found, `executor.py:144` inserts `Target` per host (dedup by `engagement_id+ip`) with `discovered_in_phase`, broadcasts `type:knowledge_update`, committed before `command_finished`.
-- Next phases can pre-fill `target` inputs from graph (UI reads `GET /graph` every 6s).
+## 19. Output Parsing & Knowledge Graph
+- `parsers/nmap_parser.py:1`: `parse_nmap_xml()` (ET) → `{hosts:[{ip,hostname,ports}]}`; `parse_nmap_text()` regex fallback (`Nmap scan report for …`, `PORT/STATE` lines) — no more `ip="unknown"` rows.
+- `parsers/generic.py:1`: stdout/stderr previews.
+- On `hosts`, `executor.py:144` upserts `Target` rows (dedup `engagement_id+ip`, `discovered_in_phase`) + `knowledge_update` broadcast. UI `GET /graph` polls every 6s; next-phase forms can pre-fill from it.
 
-## 16. WebSocket Live Console
-- Route `routers/ws.py:11` `GET /ws/engagements/{id}` (`ConnectionManager`).
-- UI `useEngagementWS.ts:11` connects to `ws://host:8001/ws/engagements/{EID}` (port auto to 8001). Messages:
-  - `{"type":"connected"}`
-  - `{"type":"console","command_id":"...","line":"Nmap 7.99 ..."}` per stdout line
-  - `{"type":"knowledge_update","target":{...}}`
-  - `{"type":"command_finished","command_id":"...","status":"succeeded","exit_code":0,"parsed":{...}}`
-  - `{"type":"command_approved"}`
-- Test via `wscat`: `wscat -c ws://localhost:8001/ws/engagements/$EID`.
+## 20. WebSocket Live Console & Events
+- Route `routers/ws.py:11` `GET /ws/engagements/{id}` (`ConnectionManager` broadcast).
+- `useEngagementWS.ts:11` streams `console` lines into `LiveConsole`; dashboard's second listener collects non-console events for Monitoring/Analytics.
+- Message types: `connected`, `console{line}`, `command_approved`, `command_finished{status,exit_code,parsed}`, `knowledge_update{target}`, **`ai_pivot{suggestions}`** (auto on failure), **`ai_chain_step{phase,tool,status,rationale}`**, **`ai_chain_step_finished`**, **`ai_chain_halted{reason}`**.
+- Test: `python3 -c "import asyncio,websockets …"` or `wscat -c ws://localhost:8001/ws/engagements/$EID`.
 
-## 17. VulnHub Lab Setup
-AlphaX expects isolated lab `VULNHUB_TARGETS` (default `192.168.56.0/24,10.0.0.0/24`).
+## 21. VulnHub Lab Setup
+AlphaX expects isolated labs (`VULNHUB_TARGETS`, default `192.168.56.0/24,10.0.0.0/24`).
+1. Download OVA from vulnhub.com (Kioptrix, Metasploitable2).
+2. VirtualBox: import, **Host-only Adapter** (`vboxnet0` 192.168.56.1).
+3. `VBoxManage startvm "Kioptrix" --type headless`; find IP via `nmap -sn 192.168.56.0/24`.
+4. `ping` + `nmap -sV <ip>` from Kali; create engagement with that CIDR.
+5. UI Phase 1 → `nmap` `target=<ip>` `scan_type=-sV -sC` `ports=-p-`.
 
-**Steps:**
-1. Download OVA from vulnhub.com (e.g., Kioptrix Level 1, Metasploitable2).
-2. VirtualBox: `File → Import Appliance → Kioptrix.ova`, **Network → Host-only Adapter** (`vboxnet0` 192.168.56.1) or `Bridged` + `Host-Only`.
-3. Start VM: `VBoxManage startvm "Kioptrix" --type headless`; find IP: `nmap -sn 192.168.56.0/24` or `arp -a`.
-4. Verify Kali can reach: `ping 192.168.56.101`, `nmap -sV 192.168.56.101`.
-5. Create engagement with that CIDR: `scope_cidr=192.168.56.0/24`.
-6. In UI Phase 1 select `nmap` `target=192.168.56.101` `scan_type=-sV -sC` `ports=-p-`.
-
-**Do not** point at non-authorized scopes; scope check is UI banner + future `EXECUTOR` CIDR validation.
-
-## 18. Full Walkthrough — Verified Against 127.0.0.1
-On this host `127.0.0.1:80 Apache 2.4.68 (Debian)` served as stand-in target (since VulnHub VM not yet imported). Steps performed 2026-09-02 13:48 UTC:
+## 22. Juice Shop Lab Setup & Test Report
+Local authorized target (OWASP Juice Shop is purpose-built vulnerable):
 
 ```bash
-TOKEN=$(curl -s -X POST http://localhost:8001/api/v1/auth/login -H "Content-Type: application/x-www-form-urlencoded" -d "username=operator&password=AlphaX!2026" | python3 -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
-EID=80e7b1a0-a15b-4013-8aaf-2b99e34f8362
-
-CID=$(curl -s -X POST http://localhost:8001/api/v1/engagements/$EID/commands -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -d '{"phase":1,"tool_name":"nmap","params":{"target":"127.0.0.1","scan_type":"-sV -oX -","ports":"-p 22,80","extra":""}}' | python3 -c "import sys,json;print(json.load(sys.stdin)['id'])")
-# → 65705abf-... raw "nmap -sV -oX - -p 22,80  127.0.0.1"
-
-curl -s -X POST http://localhost:8001/api/v1/engagements/$EID/commands/$CID/approve -H "Authorization: Bearer $TOKEN"
-curl -s -X POST http://localhost:8001/api/v1/engagements/$EID/commands/$CID/execute -H "Authorization: Bearer $TOKEN"
-sleep 8
-curl -s http://localhost:8001/api/v1/engagements/$EID/commands -H "Authorization: Bearer $TOKEN" | grep -A2 succeeded
-curl -s http://localhost:8001/api/v1/engagements/$EID/graph -H "Authorization: Bearer $TOKEN"
-# → 1 target 127.0.0.1 ports 22 closed, 80 open Apache
+docker pull bkimminich/juice-shop:latest   # 20.1.1 verified
+docker run -d --name juiceshop-test -p 127.0.0.1:3005:3000 bkimminich/juice-shop:latest
+curl -s http://127.0.0.1:3005/rest/admin/application-version  # → {"version":"20.1.1"}
+docker stop juiceshop-test   # tear down when done
 ```
 
-Prior buggy attempt `22031370...` failed due to `assemble_command` quoting (`' -sV -oX -'` → `Scantype not supported`); fixed, verified second run succeeded.
+**Full test (2026-09-04, engagement `94db6f37`, strictly loopback):**
 
-Repeat for VulnHub IP replacing `127.0.0.1`, then continue `Phase 5 Exploitation` etc.
+| Phase | Tool | Result |
+|-------|------|--------|
+| P1 | `nmap -sV -oX - -p 3005,80,22` | ✅ `succeeded` — 3005 open (Juice Shop fingerprint), graph fed, P1→P2 |
+| P1 | `nmap --script=http-enum -p 3005` (library NSE) | ✅ `succeeded` |
+| P1 | `nuclei -severity info` | ✅ `succeeded` (~90s, 3749 templates: juice-shop-detect, swagger, robots.txt) |
+| P1 | `nikto -Tuning 1` (raw) | ✅ `succeeded` (~2min: headers, robots.txt, missing HSTS) |
+| P1 | `gobuster dir common.txt` (raw) | ❌→✅ blocked by allow-list → **fixed** (§4), then correct `exit=1` SPA-wildcard handling |
+| P2 | `msfvenom linux/x64 reverse_tcp → /tmp/juice_test.elf` | ✅ `succeeded` 250-byte ELF |
+| P3 | `curl http://127.0.0.1:3005/` | ✅ `succeeded` |
+| P5 | `sqlmap …/rest/products/search?q=test --batch --crawl=1` | ✅ `succeeded` — `q` not injectable at level 1 (correct; needs higher level/tamper), 41× 500s expected |
+| P7/P17/P18 | placeholders | ✅ `succeeded` |
+| P15 | `smbclient //127.0.0.1/C$` | ✅ correct `failed` (`CONNECTION_REFUSED`) → `blocked_needs_input` |
+| Chain | AI `execute-chain` P17→P18 | ✅ 2 steps queued + succeeded |
+| AI/library/monitoring/WS/frontend | all endpoints `200`, build 142 modules 0 errors, 4 themes live | ✅ |
 
-## 19. Troubleshooting
+**Fixes from this test:** (1) allow-list widened 35→42 tools (`.env`, `config.py`, `.env.example`); (2) AI pivot branches for gobuster-SPA-wildcard, nikto-no-CGI, sqlmap-not-injectable (`ai_assist.py:340`). Target stayed healthy (`200`) throughout.
+
+## 23. Full Walkthrough — Juice Shop (Verified)
+```bash
+docker run -d --name juiceshop-test -p 127.0.0.1:3005:3000 bkimminich/juice-shop:latest
+TOKEN=$(curl -s -X POST http://localhost:8001/api/v1/auth/login -H "Content-Type: application/x-www-form-urlencoded" -d "username=operator&password=AlphaX!2026" | python3 -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
+EID=$(curl -s -X POST http://localhost:8001/api/v1/engagements -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"name":"Juice Shop 20.1.1 Local Test","scope_cidr":"127.0.0.1"}' | python3 -c "import sys,json;print(json.load(sys.stdin)['id'])")
+CID=$(curl -s -X POST http://localhost:8001/api/v1/engagements/$EID/commands -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"phase":1,"tool_name":"nmap","params":{"target":"127.0.0.1","scan_type":"-sV -oX -","ports":"-p 3005,80,22","extra":""}}' | python3 -c "import sys,json;print(json.load(sys.stdin)['id'])")
+curl -s -X POST http://localhost:8001/api/v1/engagements/$EID/commands/$CID/approve -H "Authorization: Bearer $TOKEN" > /dev/null
+curl -s -X POST http://localhost:8001/api/v1/engagements/$EID/commands/$CID/execute -H "Authorization: Bearer $TOKEN" > /dev/null
+sleep 12
+curl -s http://localhost:8001/api/v1/engagements/$EID/graph -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
+# → 127.0.0.1 localhost, ports 22 closed / 80 open Apache / 3005 open Juice Shop
+```
+Then open `http://localhost:3002/`, login, select the engagement: Monitoring shows the host, Analytics ring advances, Preselect offers NSE vuln presets, AI recommends P2 msfvenom.
+
+## 24. Troubleshooting
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `docker compose up` → `Cannot connect to Docker daemon at ...desktop/docker.sock` | Docker Desktop not running | `systemctl --user start docker` or host mode (this doc §6). |
-| `curl /auth/login` → `500 Internal Server Error` `ValueError: password cannot be longer than 72 bytes` | `bcrypt 5.0.0` with `passlib 1.7.4` | `pip install --break-system-packages --force-reinstall bcrypt==4.1.3` (verified) |
-| `bcrypt` `AttributeError: __about__` warning | Same as above | Harmless after downgrade; trapped log shows success. |
-| `GET /health` connection refused on 8000 | Port occupied (`1144` NeuroSploit) | Use `8001` (or `lsof -i :8000`, `kill`, or change `API_PORT`). Update `vite.config.ts:10` and `useEngagementWS.ts:11`. |
-| Frontend blank, token not persisted | Wrong port for proxy | Ensure `vite --port 3002` matches `CORS_ORIGINS` and API `8001`; check browser console WS error. |
-| `nmap` → `Scantype not supported` | Old `executor.py` quoted `scan_type` | Pull fixed `executor.py:35` (flag params not quoted). Use `scan_type="-sV -oX -"` properly. |
-| `Failed: Tool not in ALLOWED_TOOLS` | `ALLOWED_TOOLS` missing entry | Add to `.env` `ALLOWED_TOOLS` comma list and restart API. |
-| `blocked_needs_input` after phase | `orchestrator.py:24` failure gate | Resolve via UI (re-run or advance with PATCH `/engagements/{id}` `{"current_phase":2}`), or create alternate tool per `suggest_next_tool`. |
-| `\dt` shows no engagements | `DATABASE_URL` password mismatch | `psql -U postgres -c "ALTER USER alphax ..."` to match `.env` `DATABASE_URL`. |
-| WS `disconnected` | API not running | `cat /tmp/alphax_api.log`, `curl /health`, restart `uvicorn`. |
+| `docker compose up` → `Cannot connect to Docker daemon` | Docker Desktop down | Host mode (§6) |
+| `POST /auth/login` → `500 … longer than 72 bytes` | `bcrypt 5` + `passlib 1.7.4` | `pip install --break-system-packages --force-reinstall bcrypt==4.1.3` |
+| `GET /health` refused on 8000 | Port taken (NeuroSploit) | Use `8001`; update `vite.config.ts:10`, `useEngagementWS.ts:11` |
+| Frontend blank / token lost | Wrong proxy port | Match Vite port with `CORS_ORIGINS` + API port; check console WS errors |
+| `nmap` → `Scantype not supported` | Old quoting of `scan_type` | Fixed in `executor.py:35` (flags unquoted) |
+| `400 Tool 'X' not in ALLOWED_TOOLS` | Missing from `.env:16` | Add to `ALLOWED_TOOLS`, restart API (fixed for gobuster/dirb/ffuf/feroxbuster/whatweb/wafw00f in v0.2.0) |
+| `blocked_needs_input` after phase | `orchestrator.py:24` failure gate | Check Live Console + `ai_pivot` suggestions; re-run or PATCH phase |
+| nikto/nuclei seem "stuck" (`running`) | Tool-inherent slowness (nikto ~2min, nuclei template load ~90s) | Wait; executor timeout is 300s (exit 124). Reduce scope (`-Tuning 1`, `-severity info`) |
+| gobuster `exit=1` wildcard error | SPA target (Juice Shop) returns 200 for all routes | Expected — use AI pivot advice: `--exclude-length <len>` |
+| sqlmap "not injectable" | Level 1 too shallow | Expected — escalate per AI pivot (`--level=3 --risk=2 --tamper=…`), still scoped |
+| `\dt` shows no engagements | `DATABASE_URL` password mismatch | `ALTER USER alphax ...` to match `.env` |
+| WS `disconnected` | API down | `tail -f /tmp/alphax_api.log`, `curl /health`, restart uvicorn |
+| 401 flood `/engagements/username%3D…` | Pasted credentials into Engagement-ID field | Logout (clears localStorage), re-login, pick UUID card; UUID guard now blocks polling |
 
-Logs:
+Logs: `tail -f /tmp/alphax_api.log /tmp/alphax_front.log` · DB: `psql -h localhost -U alphax -d alphax -c "SELECT status,current_phase FROM engagements;"` · Ports: `ss -tulpn | grep -E "8001|3002|5432"`.
+
+## 25. Security Considerations
+- **Authorization:** single-operator JWT v0; multi-user needs DB users + RBAC (`routers/auth.py:16`).
+- **Allow-list:** 42 tools minimal; `bash`/`rm` blocked by deny patterns regardless.
+- **Scope:** UI banner + per-engagement `scope_cidr`; add CIDR validation in `can_execute_phase` to hard-reject out-of-scope targets.
+- **Audit:** all commands stored with stdout/stderr/exit/`approved_by`; consider `pgcrypto` for creds.
+- **Isolation:** host executor runs on Kali; untrusted targets → Docker sidecar (`EXECUTOR_MODE=docker`, `kalilinux/kali-rolling` + `NET_RAW`).
+- **Juice Shop:** intentionally vulnerable — keep it on loopback (`127.0.0.1:3005`), never expose; stop container when done.
+
+## 26. Stopping / Restarting
 ```bash
-tail -f /tmp/alphax_api.log /tmp/alphax_front.log
-psql -h localhost -U alphax -d alphax -c "SELECT status,current_phase FROM engagements;"
-ss -tulpn | grep -E "8001|3002|5432"
-```
-
-## 20. Security Considerations
-- **Authorization:** JWT single operator v0; for multi-user, replace `routers/auth.py:16` hash with DB table + RBAC.
-- **Allow-list:** Edit `ALLOWED_TOOLS` minimally; adding `bash` or `rm` is blocked by deny patterns anyway.
-- **Scope:** Currently UI banner only; add CIDR validation in `orchestrator.py:14` `can_execute_phase` to reject `target` outside `VULNHUB_TARGETS`.
-- **Audit:** All commands stored with `stdout/stderr/exit_code/approved_by`; consider `pgcrypto` for creds encryption.
-- **Isolation:** Host executor runs on Kali host; for untrusted targets prefer Docker sidecar (`EXECUTOR_MODE=docker` with `kalilinux/kali-rolling` + `cap_add NET_RAW`).
-
-## 21. Stopping / Restarting
-```bash
-# host mode
-kill $(cat /tmp/alphax_api.pid 2>/dev/null) 2>/dev/null; pkill -f "uvicorn.*8001"; pkill -f "vite.*3002"
-# or
-ps aux | grep -E "uvicorn|vite" | awk '{print $2}' | xargs kill
-
-# restart
+# host mode (find PIDs via ps aux | grep -E "uvicorn|vite")
+kill <api-pid 8001> <vite-pid 3002>
 nohup python3 -m uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port 8001 > /tmp/alphax_api.log 2>&1 &
 nohup npm --prefix frontend run dev -- --port 3002 --host 0.0.0.0 > /tmp/alphax_front.log 2>&1 &
-
+docker stop juiceshop-test   # test target
 # docker mode
-docker compose down
-docker compose up --build -d
-docker compose logs -f api
+docker compose down && docker compose up --build -d && docker compose logs -f api
 ```
 
-## 22. Development Notes
-- Verify: `python3 -m py_compile backend/app/*.py backend/app/routers/*.py backend/app/parsers/*.py` • `docker compose config` • `npm --prefix frontend run build` (252kB proven)
-- API docs: `http://localhost:8001/docs` (Swagger), `http://localhost:8001/redoc`
-- Kill-chain logic: `killchain_engine.py:12` `TOOL_MAPPING` drives param forms; add new tool by appending `ToolSpec`.
-- Frontend build: `tsc && vite build` → `dist/` (served by Vite preview or Docker nginx in prod).
-
----
-
-**Status on this Kali (2026-09-02 13:49 UTC):** API `http://localhost:8001` healthy, 1 engagement `80e7b1a0...` active phase 1, 1 host `127.0.0.1` auto-discovered, frontend `http://localhost:3002/` ready. Import VulnHub OVA → repeat walkthrough with `192.168.56.101`.
+## 27. Development Notes
+- Verify: `python3 -m py_compile backend/app/*.py backend/app/routers/*.py backend/app/parsers/*.py` • `docker compose config` • `npm --prefix frontend run build` (142 modules, 304kB, 0 errors)
+- Docs: `http://localhost:8001/docs` (Swagger) · `http://localhost:8001/redoc` · WS: `ws://localhost:8001/ws/engagements/{id}`
+- Add a tool: append `ToolSpec` in `killchain_engine.py:64` **and** its binary name to `ALLOWED_TOOLS` (`.env` + `config.py` default) or creation returns `400`.
+- Add a preset: append to `PRESET_TEMPLATES` in `scripts_library.py`; appears instantly in Preselect (no restart needed beyond API reload).
+- AI without LLM: replace `recommend_tool()` body with a chat completion fed by `TOOL_MAPPING` + live context; HITL/WS/chain code unchanged.
+- **Live (2026-09-04):** API `:8001` v0.2.0 healthy, UI `:3002/` ready, Juice Shop `:3005` v20.1.1 available, engagement `94db6f37` with `127.0.0.1` (3 ports) auto-discovered.
 
 **Quick re-login:**
 ```bash
 export TOKEN=$(curl -s -X POST http://localhost:8001/api/v1/auth/login -d "username=operator&password=AlphaX!2026" -H "Content-Type: application/x-www-form-urlencoded" | python3 -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
-export EID=80e7b1a0-a15b-4013-8aaf-2b99e34f8362
-echo TOKEN $TOKEN  # paste into UI top bar along with $EID
+export EID=94db6f37-daea-4f3d-b333-6627bf5a0af1
+echo $TOKEN  # paste into UI top bar along with $EID
 ```
