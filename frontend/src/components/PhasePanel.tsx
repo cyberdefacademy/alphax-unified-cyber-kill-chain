@@ -2,11 +2,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import { useState, useEffect } from 'react'
 
-export default function PhasePanel({ engagementId, phase, token, onExecuted, initialTool, initialParams }: { engagementId: string; phase: number; token: string; onExecuted: ()=>void; initialTool?: string; initialParams?: Record<string,string> }) {
+export default function PhasePanel({ engagementId, phase, token, onExecuted, initialTool, initialParams, initialRaw }: { engagementId: string; phase: number; token: string; onExecuted: ()=>void; initialTool?: string; initialParams?: Record<string,string>; initialRaw?: string }) {
   const headers = token ? { Authorization: `Bearer ${token}` } : {}
   const qc = useQueryClient()
   const [tool, setTool] = useState<string>('')
   const [params, setParams] = useState<Record<string,string>>({})
+  const [rawOverride, setRawOverride] = useState<string>('')
   const [lastCmdId, setLastCmdId] = useState<string>('')
 
   const toolsQ = useQuery({
@@ -35,6 +36,8 @@ export default function PhasePanel({ engagementId, phase, token, onExecuted, ini
     setParams(p)
   }, [initialTool, initialParams, toolsQ.data])
 
+  useEffect(()=>{ if (initialRaw) setRawOverride(initialRaw) }, [initialRaw])
+
   const onSelectTool = (name: string) => {
     setTool(name)
     const spec = toolsQ.data?.find((t:any)=>t.name===name)
@@ -45,7 +48,9 @@ export default function PhasePanel({ engagementId, phase, token, onExecuted, ini
 
   const createMut = useMutation({
     mutationFn: async () => {
-      const r = await axios.post(`/api/v1/engagements/${engagementId}/commands`, { phase, tool_name: tool, params }, { headers })
+      const body: any = { phase, tool_name: tool, params }
+      if (rawOverride.trim()) body.raw_command = rawOverride.trim()
+      const r = await axios.post(`/api/v1/engagements/${engagementId}/commands`, body, { headers })
       return r.data
     },
     onSuccess: (data)=>{ setLastCmdId(data.id); qc.invalidateQueries({queryKey:['cmds']}) }
@@ -80,6 +85,10 @@ export default function PhasePanel({ engagementId, phase, token, onExecuted, ini
         ))}
         {spec?.params?.length===0 && <div className="text-xs text-slate-500">No parameters — tool runs as-is (ensure HITL approval).</div>}
         {spec && <div className="text-[11px] text-slate-500">Template: <code className="text-cyan-300">{spec.template}</code></div>}
+        <label className="block text-[11px] space-y-1 pt-1 border-t border-slate-800">
+          <span className="text-slate-500">Override raw command (optional — bypasses template assembly):</span>
+          <input value={rawOverride} onChange={e => setRawOverride(e.target.value)} placeholder={spec?.template || 'nmap -sV -oX - -p- 192.168.56.0/24'} className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-[11px] font-mono" />
+        </label>
       </div>
 
       <div className="flex gap-2">

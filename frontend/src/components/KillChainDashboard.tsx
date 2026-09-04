@@ -7,6 +7,7 @@ import LiveConsole from './LiveConsole'
 import KnowledgeGraph from './KnowledgeGraph'
 import AIAssistPanel from './AIAssistPanel'
 import MonitoringWindow from './MonitoringWindow'
+import PreselectPanel from './PreselectPanel'
 import { useEngagementWS } from '../hooks/useEngagementWS'
 
 const PHASES_META = [
@@ -15,7 +16,7 @@ const PHASES_META = [
 
 export default function KillChainDashboard({ engagementId, token }: { engagementId: string; token: string }) {
   const [currentPhase, setCurrentPhase] = useState(1)
-  const [aiPicked, setAiPicked] = useState<{ tool?: string; params?: Record<string,string> }>({})
+  const [aiPicked, setAiPicked] = useState<{ tool?: string; params?: Record<string,string>; raw?: string }>({})
   const headers = token ? { Authorization: `Bearer ${token}` } : {}
 
   const uuidValid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(engagementId)
@@ -126,8 +127,9 @@ export default function KillChainDashboard({ engagementId, token }: { engagement
                 </button>
               ))}
             </div>
-            <PhasePanel engagementId={engagementId} phase={currentPhase} token={token} onExecuted={()=>{ cmdsQ.refetch(); engQ.refetch(); }} initialTool={aiPicked.tool} initialParams={aiPicked.params} />
+            <PhasePanel engagementId={engagementId} phase={currentPhase} token={token} onExecuted={()=>{ cmdsQ.refetch(); engQ.refetch(); }} initialTool={aiPicked.tool} initialParams={aiPicked.params} initialRaw={aiPicked.raw} />
           </div>
+          <PreselectPanel engagementId={engagementId} token={token} currentPhase={currentPhase} onPicked={(tool, params, raw) => { setAiPicked({ tool, params, raw: raw && raw !== tool ? raw : '' }); setCurrentPhase(activePhase) }} onPreset={(p) => { setAiPicked({ tool: p.tool, params: p.params || {}, raw: p.template }) }} />
           <AIAssistPanel engagementId={engagementId} token={token} currentPhase={currentPhase} onPickedTool={(t, p) => { setAiPicked({ tool: t, params: p }); setCurrentPhase(activePhase) }} />
           <KnowledgeGraph targets={graphQ.data?.targets ?? []} credentials={graphQ.data?.credentials ?? []} commands={cmdsQ.data ?? []} />
         </div>
