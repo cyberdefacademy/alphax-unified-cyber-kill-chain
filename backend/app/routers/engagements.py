@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 import uuid
@@ -46,6 +46,28 @@ async def update_engagement(engagement_id: uuid.UUID, body: EngagementUpdate, db
     await db.commit()
     await db.refresh(eng)
     return eng
+
+@router.delete("/{engagement_id}", status_code=204)
+async def delete_engagement(engagement_id: uuid.UUID, db: AsyncSession = Depends(get_db), user: str = Depends(get_current_user)):
+    res = await db.execute(select(Engagement).where(Engagement.id == engagement_id))
+    eng = res.scalars().first()
+    if not eng:
+        raise HTTPException(404, "engagement not found")
+    await db.delete(eng)
+    await db.commit()
+    return Response(status_code=204)
+
+@router.delete("", status_code=204)
+async def delete_all_engagements(db: AsyncSession = Depends(get_db), user: str = Depends(get_current_user)):
+    from ..models import Target, Credential, Command, Result, AssetEdge
+    await db.execute(AssetEdge.__table__.delete())
+    await db.execute(Result.__table__.delete())
+    await db.execute(Command.__table__.delete())
+    await db.execute(Credential.__table__.delete())
+    await db.execute(Target.__table__.delete())
+    await db.execute(Engagement.__table__.delete())
+    await db.commit()
+    return Response(status_code=204)
 
 @router.get("/{engagement_id}/killchain/phases")
 async def get_phases(engagement_id: uuid.UUID, db: AsyncSession = Depends(get_db), user: str = Depends(get_current_user)):

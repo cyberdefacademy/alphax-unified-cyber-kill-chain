@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import AttackFlow from './AttackFlow'
 import PhasePanel from './PhasePanel'
 import LiveConsole from './LiveConsole'
 import KnowledgeGraph from './KnowledgeGraph'
 import AIAssistPanel from './AIAssistPanel'
+import MonitoringWindow from './MonitoringWindow'
 import { useEngagementWS } from '../hooks/useEngagementWS'
 
 const PHASES_META = [
@@ -46,6 +47,26 @@ export default function KillChainDashboard({ engagementId, token }: { engagement
   })
 
   const { lines, status: wsStatus, clear } = useEngagementWS(engagementId)
+
+  // WS event pulse for MonitoringWindow
+  const [wsEvents, setWsEvents] = useState<any[]>([])
+  const wsRef = useRef<WebSocket | null>(null)
+  useEffect(() => {
+    if (!engagementId || !uuidValid) return
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const port = location.port === '3002' || location.port === '3000' || location.port === '3001' ? '8001' : '8001'
+    const url = `${proto}//${location.hostname}:${port}/ws/engagements/${engagementId}`
+    const ws = new WebSocket(url)
+    wsRef.current = ws
+    ws.onmessage = (ev) => {
+      try {
+        const msg = JSON.parse(ev.data)
+        if (msg.type === 'connected' || msg.type === 'console') return
+        setWsEvents((prev) => [...prev.slice(-99), { ...msg, _ts: Date.now() }])
+      } catch {}
+    }
+    return () => { ws.close() }
+  }, [engagementId, uuidValid])
 
   if (!engagementId || !uuidValid) {
     return <div className="max-w-[1600px] mx-auto px-6 py-12 text-center text-slate-400">

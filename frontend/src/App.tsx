@@ -53,6 +53,19 @@ export default function App() {
     onError:(e:any)=> setCreateErr(e?.response?.data?.detail || e.message)
   })
 
+  const deleteOneMut = useMutation({
+    mutationFn: async(id:string)=> axios.delete(`/api/v1/engagements/${id}`, { headers:{ Authorization:`Bearer ${token}` }}),
+    onSuccess:(_d, id)=>{
+      qc.invalidateQueries({queryKey:['engs']})
+      if (engagementId === id) { setEngagementId(''); localStorage.removeItem('alphax_eid') }
+    }
+  })
+
+  const deleteAllMut = useMutation({
+    mutationFn: async()=> axios.delete('/api/v1/engagements', { headers:{ Authorization:`Bearer ${token}` }}),
+    onSuccess:()=>{ qc.invalidateQueries({queryKey:['engs']}); setEngagementId(''); localStorage.removeItem('alphax_eid') }
+  })
+
   const logout = ()=>{ setToken(''); setEngagementId('') }
 
   return (
@@ -113,12 +126,25 @@ export default function App() {
                 {!isUUID && engagementId && <span className="text-xs text-red-400 mb-2">✗ Invalid UUID — stops 401 polling. Pick from list below.</span>}
               </div>
 
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[11px] text-slate-400">Engagements ({engsQ.data?.length ?? 0})</span>
+                {(engsQ.data?.length ?? 0) > 0 && (
+                  <button onClick={() => { if (confirm(`Delete ALL ${engsQ.data?.length} engagement(s) + their targets/credentials/commands?`)) deleteAllMut.mutate() }} disabled={deleteAllMut.isPending} className="px-2 py-1 rounded bg-red-500/20 border border-red-500/40 text-red-300 hover:bg-red-500/30 text-[11px] font-semibold disabled:opacity-50">
+                    {deleteAllMut.isPending ? 'Clearing…' : 'Clear All'}
+                  </button>
+                )}
+              </div>
               <div className="flex gap-2 flex-wrap">
                 {(engsQ.data ?? []).map(e=>(
-                  <button key={e.id} onClick={()=>setEngagementId(e.id)} className={`px-3 py-2 rounded border text-xs text-left ${engagementId===e.id?'bg-cyan-500/20 border-cyan-500 text-cyan-300':'bg-slate-950 border-slate-700 hover:border-slate-600'}`}>
-                    <div className="font-semibold">{e.name}</div>
-                    <div className="text-[11px] text-slate-400">{e.id.slice(0,8)} • {e.scope_cidr} • P{e.current_phase} • {e.status}</div>
-                  </button>
+                  <div key={e.id} className={`flex items-stretch border rounded ${engagementId===e.id?'bg-cyan-500/20 border-cyan-500':'bg-slate-950 border-slate-700 hover:border-slate-600'}`}>
+                    <button onClick={()=>setEngagementId(e.id)} className="px-3 py-2 text-xs text-left flex-1">
+                      <div className="font-semibold">{e.name}</div>
+                      <div className="text-[11px] text-slate-400">{e.id.slice(0,8)} • {e.scope_cidr} • P{e.current_phase} • {e.status}</div>
+                    </button>
+                    <button onClick={() => { if (confirm(`Delete engagement "${e.name}" + cascade targets/credentials/commands?`)) deleteOneMut.mutate(e.id) }} disabled={deleteOneMut.isPending} className="px-2 text-slate-500 hover:text-red-300 hover:bg-red-500/10 border-l border-slate-700 text-[14px] disabled:opacity-50" title="Delete this engagement">
+                      ×
+                    </button>
+                  </div>
                 ))}
                 {engsQ.isLoading && <span className="text-xs text-slate-500">Loading engagements…</span>}
                 {engsQ.data?.length===0 && <span className="text-xs text-slate-500">No engagements yet — create below.</span>}
