@@ -1,3 +1,248 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ============================================================================
+   AlphaX Cyber Kill-Chain — 4 Professional Director Console Themes
+   Each theme is a :root[data-theme="<name>"] override + body shell + glow.
+   ============================================================================ */
+
+:root,
+:root[data-theme="neon"] {
+  --bg-deep: #060a12;
+  --bg-panel: #0f172a;
+  --bg-elevated: #1e293b;
+  --bg-input: #0b1220;
+  --border-base: #1e293b;
+  --border-strong: #334155;
+  --fg-primary: #e2e8f0;
+  --fg-secondary: #94a3b8;
+  --fg-muted: #64748b;
+  --accent: #22d3ee;
+  --accent-hover: #67e8f9;
+  --accent-soft: rgba(34, 211, 238, 0.15);
+  --accent-border: rgba(34, 211, 238, 0.5);
+  --success: #22c55e;
+  --success-soft: rgba(34, 197, 94, 0.15);
+  --warn: #f59e0b;
+  --warn-soft: rgba(245, 158, 11, 0.15);
+  --danger: #f43f5e;
+  --danger-soft: rgba(244, 63, 94, 0.15);
+  --ai: #22d3ee;
+  --ai-soft: rgba(34, 211, 238, 0.15);
+  --bg-grad: radial-gradient(ellipse at top, #0a1628 0%, #060a12 60%);
+  --grid-line: rgba(34, 211, 238, 0.04);
+  --shadow-glow: 0 0 24px rgba(34, 211, 238, 0.18);
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* TACTICAL GREEN — SOC analyst green phosphor CRT feel */
+:root[data-theme="tactical"] {
+  --bg-deep: #04110a;
+  --bg-panel: #0a1f12;
+  --bg-elevated: #0f2c19;
+  --bg-input: #07170d;
+  --border-base: #133a22;
+  --border-strong: #1e5a35;
+  --fg-primary: #d1f5d8;
+  --fg-secondary: #86c598;
+  --fg-muted: #4f8e69;
+  --accent: #4ade80;
+  --accent-hover: #86efac;
+  --accent-soft: rgba(74, 222, 128, 0.16);
+  --accent-border: rgba(74, 222, 128, 0.5);
+  --success: #22c55e;
+  --success-soft: rgba(34, 197, 94, 0.15);
+  --warn: #eab308;
+  --warn-soft: rgba(234, 179, 8, 0.15);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.15);
+  --ai: #84cc16;
+  --ai-soft: rgba(132, 204, 22, 0.16);
+  --bg-grad: radial-gradient(ellipse at top, #082414 0%, #04110a 65%);
+  --grid-line: rgba(74, 222, 128, 0.05);
+  --shadow-glow: 0 0 24px rgba(74, 222, 128, 0.18);
+}
+
+/* CYBER CRIMSON — red-team ops, threat intel palette */
+:root[data-theme="crimson"] {
+  --bg-deep: #150407;
+  --bg-panel: #240911;
+  --bg-elevated: #371019;
+  --bg-input: #180609;
+  --border-base: #4a1622;
+  --border-strong: #732333;
+  --fg-primary: #fde2e6;
+  --fg-secondary: #f5a8b5;
+  --fg-muted: #b06775;
+  --accent: #f43f5e;
+  --accent-hover: #fb7185;
+  --accent-soft: rgba(244, 63, 94, 0.18);
+  --accent-border: rgba(244, 63, 94, 0.5);
+  --success: #4ade80;
+  --success-soft: rgba(74, 222, 128, 0.15);
+  --warn: #fbbf24;
+  --warn-soft: rgba(251, 191, 36, 0.15);
+  --danger: #ef4444;
+  --danger-soft: rgba(239, 68, 68, 0.15);
+  --ai: #fb7185;
+  --ai-soft: rgba(251, 113, 133, 0.18);
+  --bg-grad: radial-gradient(ellipse at top, #2b0a14 0%, #150407 65%);
+  --grid-line: rgba(244, 63, 94, 0.05);
+  --shadow-glow: 0 0 24px rgba(244, 63, 94, 0.20);
+}
+
+/* MIDNIGHT OPS — NSO / aerospace — gold + steel */
+:root[data-theme="midnight"] {
+  --bg-deep: #05060b;
+  --bg-panel: #0b0d15;
+  --bg-elevated: #14171f;
+  --bg-input: #080a10;
+  --border-base: #1f2330;
+  --border-strong: #353a4a;
+  --fg-primary: #e4e6eb;
+  --fg-secondary: #a4a8b3;
+  --fg-muted: #6c7080;
+  --accent: #fbbf24;
+  --accent-hover: #fcd34d;
+  --accent-soft: rgba(251, 191, 36, 0.15);
+  --accent-border: rgba(251, 191, 36, 0.5);
+  --success: #5eead4;
+  --success-soft: rgba(94, 234, 212, 0.15);
+  --warn: #f59e0b;
+  --warn-soft: rgba(245, 158, 11, 0.15);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.15);
+  --ai: #c084fc;
+  --ai-soft: rgba(192, 132, 252, 0.18);
+  --bg-grad: radial-gradient(ellipse at top, #0c0e16 0%, #05060b 70%);
+  --grid-line: rgba(251, 191, 36, 0.04);
+  --shadow-glow: 0 0 24px rgba(251, 191, 36, 0.12);
+}
+
+/* Semantic mapping (Tailwind-friendly) */
+body {
+  background: var(--bg-grad);
+  color: var(--fg-primary);
+  font-family: var(--font-mono);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/* Theme-aware base colors used by inline-style components */
+.ax-bg-deep { background-color: var(--bg-deep); }
+.ax-bg-panel { background-color: var(--bg-panel); }
+.ax-bg-elevated { background-color: var(--bg-elevated); }
+.ax-bg-input { background-color: var(--bg-input); }
+.ax-border-base { border-color: var(--border-base); }
+.ax-border-strong { border-color: var(--border-strong); }
+.ax-fg { color: var(--fg-primary); }
+.ax-fg-2 { color: var(--fg-secondary); }
+.ax-fg-muted { color: var(--fg-muted); }
+.ax-accent { color: var(--accent); }
+.ax-accent-bg { background-color: var(--accent); }
+.ax-accent-soft { background-color: var(--accent-soft); border-color: var(--accent-border); }
+.ax-success { color: var(--success); }
+.ax-warn { color: var(--warn); }
+.ax-danger { color: var(--danger); }
+.ax-ai { color: var(--ai); }
+
+/* Theme-aware component classes (replaces bg-slate-900 / border-slate-800 etc.) */
+.ax-card {
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-base);
+  border-radius: 0.5rem;
+}
+.ax-card-glow {
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-base);
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow-glow);
+}
+.ax-input {
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-base);
+  border-radius: 0.375rem;
+  color: var(--fg-primary);
+}
+.ax-input:focus { outline: 1px solid var(--accent); }
+.ax-tab-active { color: var(--accent); background-color: var(--accent-soft); border-color: var(--accent-border); }
+.ax-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+}
+.ax-pulse::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--accent);
+  margin-right: 6px;
+  box-shadow: 0 0 8px var(--accent);
+  animation: ax-pulse 1.6s ease-in-out infinite;
+}
+@keyframes ax-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+/* Scanline overlay (subtle CRT) for terminal vibe */
+.ax-scanlines::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    180deg,
+    transparent 0,
+    transparent 2px,
+    var(--grid-line) 2px,
+    var(--grid-line) 3px
+  );
+  z-index: 1;
+  mix-blend-mode: overlay;
+}
+
+/* Accent ring used on focused buttons (Create/Approve/Execute) */
+.ax-btn-primary {
+  background-color: var(--accent);
+  color: var(--bg-deep);
+  font-weight: 700;
+  transition: filter 120ms ease;
+}
+.ax-btn-primary:hover { filter: brightness(1.12); }
+.ax-btn-primary:disabled { opacity: 0.5; }
+
+.ax-btn-secondary {
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  color: var(--fg-primary);
+}
+.ax-btn-secondary:hover { background-color: var(--bg-input); }
+
+.ax-btn-danger {
+  background-color: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+.ax-btn-danger:hover { background-color: var(--danger); color: var(--bg-deep); }
+
+.ax-glow {
+  box-shadow: var(--shadow-glow);
+}
+
+/* Subtle gradient text for hero titles */
+.ax-title {
+  background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}

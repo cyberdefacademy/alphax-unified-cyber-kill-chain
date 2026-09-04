@@ -2,11 +2,19 @@ import { useState, useEffect } from 'react'
 import KillChainDashboard from './components/KillChainDashboard'
 import axios from 'axios'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { ThemeSwitcher, useTheme } from './components/ThemeSwitcher'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export default function App() {
   const qc = useQueryClient()
+  useTheme() // applies data-theme to <html> on mount + persists
+  useEffect(() => {
+    // Restore scanline overlay preference
+    if (typeof document !== 'undefined' && localStorage.getItem('alphax_scanlines') === 'true') {
+      document.documentElement.classList.add('ax-scanlines')
+    }
+  }, [])
   const [engagementId, setEngagementId] = useState<string>(() => localStorage.getItem('alphax_eid') || '')
   const [token, setToken] = useState<string>(() => localStorage.getItem('alphax_token') || '')
   const [user, setUser] = useState('operator')
@@ -69,21 +77,22 @@ export default function App() {
   const logout = ()=>{ setToken(''); setEngagementId('') }
 
   return (
-    <div className="min-h-screen bg-[#060a12] text-slate-100">
-      <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur sticky top-0 z-20">
+    <div className="min-h-screen" style={{ color: 'var(--fg-primary)' }}>
+      <header className="border-b backdrop-blur sticky top-0 z-20" style={{ borderColor: 'var(--border-base)', backgroundColor: 'color-mix(in srgb, var(--bg-panel) 70%, transparent)' }}>
         <div className="max-w-[1600px] mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded bg-cyan-400 flex items-center justify-center font-black text-slate-900">AX</div>
+            <div className="w-8 h-8 rounded flex items-center justify-center font-black" style={{ background: 'var(--accent)', color: 'var(--bg-deep)' }}>AX</div>
             <div>
-              <h1 className="font-bold tracking-widest text-sm">ALPHAX CYBER KILL-CHAIN</h1>
-              <p className="text-xs text-slate-400">Director&apos;s Console — 18 Phase UCKC — VulnHub Lab — HITL Gates Enforced</p>
+              <h1 className="ax-title font-bold text-sm">ALPHAX CYBER KILL-CHAIN</h1>
+              <p className="text-xs ax-fg-muted">Director&apos;s Console — 18 Phase UCKC — VulnHub Lab — HITL Gates Enforced</p>
             </div>
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="px-2 py-1 rounded bg-red-500/20 text-red-300 border border-red-500/30">AUTHORIZED ENGAGEMENTS ONLY</span>
-            {token ? <button onClick={logout} className="px-3 py-1 rounded bg-slate-800 border border-slate-700 hover:bg-slate-700">Logout</button> : null}
-            <span className={token ? "text-emerald-400" : "text-slate-500"}>{token ? '● operator' : '○ not authed'}</span>
-            <span className="text-slate-600 hidden md:inline">API :8001 • UI :3002</span>
+            <span className="px-2 py-1 rounded" style={{ backgroundColor: 'var(--danger-soft)', color: 'var(--danger)', border: '1px solid color-mix(in srgb, var(--danger) 40%, transparent)' }}>AUTHORIZED ENGAGEMENTS ONLY</span>
+            <ThemeSwitcher />
+            {token ? <button onClick={logout} className="ax-btn-secondary rounded px-3 py-1">Logout</button> : null}
+            <span style={{ color: token ? 'var(--success)' : 'var(--fg-muted)' }}>{token ? '● operator' : '○ not authed'}</span>
+            <span className="ax-fg-muted hidden md:inline">API :8001 • UI :3002</span>
           </div>
         </div>
       </header>
@@ -91,78 +100,81 @@ export default function App() {
       {/* Controls */}
       <div className="max-w-[1600px] mx-auto px-6 py-4 space-y-3">
         {/* Login row */}
-        <div className="bg-slate-900 border border-slate-800 rounded p-3">
-          <div className="text-[11px] tracking-widest text-slate-400 mb-2">1 — AUTHENTICATE (single-operator JWT)</div>
+        <div className="ax-card p-3">
+          <div className="text-[11px] tracking-widest ax-fg-muted mb-2">1 — AUTHENTICATE (single-operator JWT)</div>
           <div className="flex flex-wrap gap-2 items-end">
             <label className="text-xs space-y-1">
-              <span className="text-slate-400">Username</span>
-              <input value={user} onChange={e=>setUser(e.target.value)} className="w-36 bg-slate-950 border border-slate-700 rounded px-3 py-2 text-xs" />
+              <span className="ax-fg-2">Username</span>
+              <input value={user} onChange={e=>setUser(e.target.value)} className="ax-input w-36 rounded px-3 py-2 text-xs" />
             </label>
             <label className="text-xs space-y-1">
-              <span className="text-slate-400">Password</span>
-              <input type="password" value={pass} onChange={e=>setPass(e.target.value)} className="w-36 bg-slate-950 border border-slate-700 rounded px-3 py-2 text-xs" />
+              <span className="ax-fg-2">Password</span>
+              <input type="password" value={pass} onChange={e=>setPass(e.target.value)} className="ax-input w-36 rounded px-3 py-2 text-xs" />
             </label>
-            <button onClick={()=>loginMut.mutate()} disabled={loginMut.isPending} className="px-4 py-2 rounded bg-cyan-500 text-slate-900 font-bold text-xs hover:bg-cyan-400 disabled:opacity-50">
+            <button onClick={()=>loginMut.mutate()} disabled={loginMut.isPending} className="ax-btn-primary rounded px-4 py-2 text-xs disabled:opacity-50">
               {loginMut.isPending ? 'Logging…' : token ? 'Re-Login' : 'Login'}
             </button>
-            <span className="text-xs text-slate-500">{token ? `Token ${token.slice(0,22)}… ✓` : 'Default: operator / AlphaX!2026'}</span>
-            {loginErr && <span className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded px-2 py-1">{loginErr}</span>}
-            {token && <span className="text-[11px] text-emerald-300">Login OK — token auto-saved.</span>}
+            <span className="text-xs ax-fg-muted">{token ? `Token ${token.slice(0,22)}… ✓` : 'Default: operator / AlphaX!2026'}</span>
+            {loginErr && <span className="text-xs ax-danger rounded px-2 py-1" style={{ backgroundColor: 'var(--danger-soft)', border: '1px solid color-mix(in srgb, var(--danger) 30%, transparent)' }}>{loginErr}</span>}
+            {token && <span className="text-[11px] ax-success">Login OK — token auto-saved.</span>}
           </div>
-          {!token && <div className="text-[11px] text-amber-300 mt-2">Or cURL: <code>curl -X POST http://localhost:8001/api/v1/auth/login -H "Content-Type: application/x-www-form-urlencoded" -d "username=operator&password=AlphaX!2026"</code></div>}
+          {!token && <div className="text-[11px] ax-warn mt-2">Or cURL: <code>curl -X POST http://localhost:8001/api/v1/auth/login -H "Content-Type: application/x-www-form-urlencoded" -d "username=operator&password=AlphaX!2026"</code></div>}
         </div>
 
         {/* Engagement row */}
-        <div className="bg-slate-900 border border-slate-800 rounded p-3">
-          <div className="text-[11px] tracking-widest text-slate-400 mb-2">2 — SELECT / CREATE ENGAGEMENT (scope = VulnHub CIDR)</div>
-          {!token ? <div className="text-xs text-slate-500">Login first.</div> : (
+        <div className="ax-card p-3">
+          <div className="text-[11px] tracking-widest ax-fg-muted mb-2">2 — SELECT / CREATE ENGAGEMENT (scope = VulnHub CIDR)</div>
+          {!token ? <div className="text-xs ax-fg-muted">Login first.</div> : (
             <div className="space-y-3">
               <div className="flex flex-wrap gap-2 items-end">
                 <label className="text-xs space-y-1 flex-1 min-w-[280px]">
-                  <span className="text-slate-400">Engagement ID (UUID) {engagementId && !isUUID && <span className="text-red-400">— must be UUID, you pasted &quot;{engagementId.slice(0,30)}&quot;</span>}</span>
-                  <input value={engagementId} onChange={e=>setEngagementId(e.target.value.trim())} placeholder="select from list or paste UUID" className={`w-full border rounded px-3 py-2 text-xs font-mono ${engagementId && !isUUID ? 'bg-red-950 border-red-700 text-red-200' : 'bg-slate-950 border-slate-700'}`} />
+                  <span className="ax-fg-2">Engagement ID (UUID) {engagementId && !isUUID && <span className="ax-danger">— must be UUID, you pasted &quot;{engagementId.slice(0,30)}&quot;</span>}</span>
+                  <input value={engagementId} onChange={e=>setEngagementId(e.target.value.trim())} placeholder="select from list or paste UUID" className={`w-full ax-input rounded px-3 py-2 text-xs font-mono ${engagementId && !isUUID ? 'border-red-700 text-red-200' : ''}`} />
                 </label>
-                {isUUID && <span className="text-xs text-emerald-400 mb-2">✓ UUID valid</span>}
-                {!isUUID && engagementId && <span className="text-xs text-red-400 mb-2">✗ Invalid UUID — stops 401 polling. Pick from list below.</span>}
+                {isUUID && <span className="text-xs ax-success mb-2">✓ UUID valid</span>}
+                {!isUUID && engagementId && <span className="text-xs ax-danger mb-2">✗ Invalid UUID — stops 401 polling. Pick from list below.</span>}
               </div>
 
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[11px] text-slate-400">Engagements ({engsQ.data?.length ?? 0})</span>
+                <span className="text-[11px] ax-fg-2">Engagements ({engsQ.data?.length ?? 0})</span>
                 {(engsQ.data?.length ?? 0) > 0 && (
-                  <button onClick={() => { if (confirm(`Delete ALL ${engsQ.data?.length} engagement(s) + their targets/credentials/commands?`)) deleteAllMut.mutate() }} disabled={deleteAllMut.isPending} className="px-2 py-1 rounded bg-red-500/20 border border-red-500/40 text-red-300 hover:bg-red-500/30 text-[11px] font-semibold disabled:opacity-50">
+                  <button onClick={() => { if (confirm(`Delete ALL ${engsQ.data?.length} engagement(s) + their targets/credentials/commands?`)) deleteAllMut.mutate() }} disabled={deleteAllMut.isPending} className="ax-btn-danger rounded px-2 py-1 text-[11px] font-semibold disabled:opacity-50">
                     {deleteAllMut.isPending ? 'Clearing…' : 'Clear All'}
                   </button>
                 )}
               </div>
               <div className="flex gap-2 flex-wrap">
-                {(engsQ.data ?? []).map(e=>(
-                  <div key={e.id} className={`flex items-stretch border rounded ${engagementId===e.id?'bg-cyan-500/20 border-cyan-500':'bg-slate-950 border-slate-700 hover:border-slate-600'}`}>
-                    <button onClick={()=>setEngagementId(e.id)} className="px-3 py-2 text-xs text-left flex-1">
-                      <div className="font-semibold">{e.name}</div>
-                      <div className="text-[11px] text-slate-400">{e.id.slice(0,8)} • {e.scope_cidr} • P{e.current_phase} • {e.status}</div>
-                    </button>
-                    <button onClick={() => { if (confirm(`Delete engagement "${e.name}" + cascade targets/credentials/commands?`)) deleteOneMut.mutate(e.id) }} disabled={deleteOneMut.isPending} className="px-2 text-slate-500 hover:text-red-300 hover:bg-red-500/10 border-l border-slate-700 text-[14px] disabled:opacity-50" title="Delete this engagement">
-                      ×
-                    </button>
-                  </div>
-                ))}
-                {engsQ.isLoading && <span className="text-xs text-slate-500">Loading engagements…</span>}
-                {engsQ.data?.length===0 && <span className="text-xs text-slate-500">No engagements yet — create below.</span>}
+                {(engsQ.data ?? []).map(e=>{
+                  const isSel = engagementId === e.id
+                  return (
+                    <div key={e.id} className="flex items-stretch border rounded overflow-hidden" style={{ backgroundColor: isSel ? 'var(--accent-soft)' : 'var(--bg-input)', borderColor: isSel ? 'var(--accent-border)' : 'var(--border-base)' }}>
+                      <button onClick={()=>setEngagementId(e.id)} className="px-3 py-2 text-xs text-left flex-1">
+                        <div className="font-semibold ax-fg">{e.name}</div>
+                        <div className="text-[11px] ax-fg-muted">{e.id.slice(0,8)} • {e.scope_cidr} • P{e.current_phase} • {e.status}</div>
+                      </button>
+                      <button onClick={() => { if (confirm(`Delete engagement "${e.name}" + cascade targets/credentials/commands?`)) deleteOneMut.mutate(e.id) }} disabled={deleteOneMut.isPending} className="px-2 ax-fg-muted hover:ax-danger text-[14px] disabled:opacity-50" style={{ borderLeft: '1px solid var(--border-base)' }} title="Delete this engagement">
+                        ×
+                      </button>
+                    </div>
+                  )
+                })}
+                {engsQ.isLoading && <span className="text-xs ax-fg-muted">Loading engagements…</span>}
+                {engsQ.data?.length===0 && <span className="text-xs ax-fg-muted">No engagements yet — create below.</span>}
               </div>
 
-              <div className="flex flex-wrap gap-2 items-end border-t border-slate-800 pt-3">
+              <div className="flex flex-wrap gap-2 items-end border-t pt-3" style={{ borderColor: 'var(--border-base)' }}>
                 <label className="text-xs space-y-1">
-                  <span className="text-slate-400">New name</span>
-                  <input value={newName} onChange={e=>setNewName(e.target.value)} className="w-56 bg-slate-950 border border-slate-700 rounded px-3 py-2 text-xs" />
+                  <span className="ax-fg-2">New name</span>
+                  <input value={newName} onChange={e=>setNewName(e.target.value)} className="ax-input w-56 rounded px-3 py-2 text-xs" />
                 </label>
                 <label className="text-xs space-y-1">
-                  <span className="text-slate-400">Scope CIDR</span>
-                  <input value={newScope} onChange={e=>setNewScope(e.target.value)} className="w-40 bg-slate-950 border border-slate-700 rounded px-3 py-2 text-xs" />
+                  <span className="ax-fg-2">Scope CIDR</span>
+                  <input value={newScope} onChange={e=>setNewScope(e.target.value)} className="ax-input w-40 rounded px-3 py-2 text-xs" />
                 </label>
-                <button onClick={()=>createMut.mutate()} disabled={createMut.isPending || !token} className="px-4 py-2 rounded bg-emerald-500 text-slate-900 font-bold text-xs hover:bg-emerald-400 disabled:opacity-50">
+                <button onClick={()=>createMut.mutate()} disabled={createMut.isPending || !token} className="rounded px-4 py-2 text-xs font-bold disabled:opacity-50" style={{ backgroundColor: 'var(--success)', color: 'var(--bg-deep)' }}>
                   {createMut.isPending ? 'Creating…' : 'Create & Select'}
                 </button>
-                {createErr && <span className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded px-2 py-1">{createErr}</span>}
+                {createErr && <span className="text-xs ax-danger rounded px-2 py-1" style={{ backgroundColor: 'var(--danger-soft)', border: '1px solid color-mix(in srgb, var(--danger) 30%, transparent)' }}>{createErr}</span>}
               </div>
             </div>
           )}
@@ -171,7 +183,7 @@ export default function App() {
 
       {/* Dashboard */}
       {isUUID && token ? <KillChainDashboard engagementId={engagementId} token={token} /> : (
-        <div className="max-w-[1600px] mx-auto px-6 pb-12 text-center text-slate-400 py-8">
+        <div className="max-w-[1600px] mx-auto px-6 pb-12 text-center ax-fg-muted py-8">
           <p className="text-sm">{!token ? 'Login above.' : !isUUID ? 'Fix Engagement ID — must be a UUID from the list (or create one). The 401 loops you saw came from pasting "username=operator..." into the ID field.' : 'Select an engagement.'}</p>
         </div>
       )}
