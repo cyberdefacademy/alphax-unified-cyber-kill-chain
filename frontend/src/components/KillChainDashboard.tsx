@@ -7,6 +7,7 @@ import LiveConsole from './LiveConsole'
 import KnowledgeGraph from './KnowledgeGraph'
 import AIAssistPanel from './AIAssistPanel'
 import MonitoringWindow from './MonitoringWindow'
+import VisualAnalytics from './VisualAnalytics'
 import PreselectPanel from './PreselectPanel'
 import { useEngagementWS } from '../hooks/useEngagementWS'
 
@@ -116,6 +117,9 @@ export default function KillChainDashboard({ engagementId, token }: { engagement
 
       {/* Visual Monitoring Window */}
       <MonitoringWindow engagementId={engagementId} token={token} wsEvents={wsEvents} />
+
+      {/* Visual Analytics — rings, MITRE heatmap, attack graph, ticker */}
+      <VisualAnalytics engagementId={engagementId} token={token} wsEvents={wsEvents} />
 
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-5 space-y-3">

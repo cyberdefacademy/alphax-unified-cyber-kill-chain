@@ -251,3 +251,14 @@ body {
 .ax-success-bg { background-color: var(--success-soft); border: 1px solid color-mix(in srgb, var(--success) 30%, transparent); color: var(--success); }
 .ax-warn-bg { background-color: var(--warn-soft); border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent); color: var(--warn); }
 .ax-danger-bg { background-color: var(--danger-soft); border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent); color: var(--danger); }
+
+/* Live event ticker — gentle vertical drift, pauses on hover */
+.ax-ticker { animation: ax-ticker-drift 24s linear infinite; }
+.ax-ticker:hover { animation-play-state: paused; }
+@keyframes ax-ticker-drift {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-18%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ax-ticker { animation: none; }
+}

@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 480
     executor_mode: str = "host"  # host | docker
-    allowed_tools: str = "nmap,msfvenom,msfconsole,hydra,hashcat,sqlmap,nikto,smbclient,psexec.py,wmiexec.py,secretsdump.py,crackmapexec,linpeas,winpeas,chisel,ligolo,scp,nuclei,dirb,gobuster"
+    allowed_tools: str = "nmap,masscan,nuclei,msfvenom,msfconsole,msfconsole_handler,curl,setoolkit,gophish,sqlmap,cron,mimikatz,amsi-bypass,sliver,chisel,ssh,ligolo,linpeas,winPEAS,bloodhound,sudo,windows-exploit-suggester,psexec.py,wmiexec.py,secretsdump.py,hashcat,crackmapexec,smbclient,scp,rclone,custom,report,hydra,nikto,winpeas,gobuster,dirb,ffuf,feroxbuster,whatweb,wafw00f"
     vulnhub_targets: str = "192.168.56.0/24,10.0.0.0/24"
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     alphax_operator_user: str = "operator"

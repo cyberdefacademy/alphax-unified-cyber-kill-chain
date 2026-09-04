@@ -363,6 +363,27 @@ def suggest_on_failure(phase: int, failed_tool: str, stderr: str, exit_code: int
             "action": "sudo requires TTY — run in an interactive shell, or use a TTY wrapper like `script -qc 'sudo -l' /dev/null`.",
         })
 
+    # gobuster wildcard / SPA (e.g. Juice Shop returns 200 for all routes)
+    if "wildcard" in s or ("gobuster" in failed_tool.lower() and "status code" in s):
+        suggestions.append({
+            "type": "param",
+            "action": "Target returns 200 for missing URLs (SPA wildcard, e.g. Juice Shop). Re-run with --exclude-length <len> or -b 200, or switch to --status-codes-blacklist handling. Example: gobuster dir -u <url> -w <wordlist> --exclude-length 9903.",
+        })
+
+    # nikto informational-only (no CGI dirs etc.) — not a real failure
+    if "no cgi directories found" in s or "cgi tests skipped" in s:
+        suggestions.append({
+            "type": "review",
+            "action": "Nikto completed but found no CGI dirs — normal for Node.js/SPA targets like Juice Shop. Review robots.txt / headers findings above; consider nuclei or gobuster next.",
+        })
+
+    # sqlmap "not injectable" at low level/risk
+    if "does not seem to be injectable" in s or "do not appear to be injectable" in s:
+        suggestions.append({
+            "type": "param",
+            "action": "Parameter not injectable at current --level/--risk. Escalate gently: --level=3 --risk=2 --technique=BEUSTQ --tamper=space2comment --random-agent, still scoped to the authorized target.",
+        })
+
     # Generic failure with no specific marker
     if not suggestions:
         suggestions.append({
