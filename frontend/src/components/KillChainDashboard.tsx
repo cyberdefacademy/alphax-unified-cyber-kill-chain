@@ -113,6 +113,9 @@ export default function KillChainDashboard({ engagementId, token }: { engagement
 
       <AttackFlow currentPhase={activePhase} onSelect={setCurrentPhase} />
 
+      {/* Visual Monitoring Window */}
+      <MonitoringWindow engagementId={engagementId} token={token} wsEvents={wsEvents} />
+
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-5 space-y-3">
           <div className="bg-slate-900 border border-slate-800 rounded">
