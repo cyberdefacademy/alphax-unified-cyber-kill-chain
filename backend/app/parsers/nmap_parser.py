@@ -40,9 +40,11 @@ def parse_nmap_xml(xml_str: str) -> dict[str, Any]:
     except ET.ParseError as e:
         return {"raw": xml_str[:5000], "hosts": [], "parsed": False, "error": str(e)}
 
-# Match "Nmap scan report for <name|ip>" and "Host is up ... Address: <ip>"
+# Match "Nmap scan report for <name> (<ip>)" / "for <ip>" (hostname optional)
 _NMAP_REPORT_RE = re.compile(r"Nmap scan report for\s+(?:([\w.\-]+)\s+\()?(\d{1,3}(?:\.\d{1,3}){3})\)?", re.MULTILINE)
-_NMAP_OPEN_RE = re.compile(r"^(\d{1,5})/(tcp|udp)\s+open(?:\s+(\S+))?(?:\s+(.*?))?$", re.MULTILINE)
+# NOTE: service/version separators are [ \t]+ (never \s+) so the version group
+# cannot slurp the next line across a blank line (e.g. "Nmap done: ...").
+_NMAP_OPEN_RE = re.compile(r"^(\d{1,5})/(tcp|udp)[ \t]+open(?:[ \t]+(\S+))?(?:[ \t]+(.*?))?[ \t]*$", re.MULTILINE)
 
 def parse_nmap_text(text: str) -> dict[str, Any]:
     """Robust nmap plaintext parser: extracts host IP + open ports from
@@ -50,28 +52,35 @@ def parse_nmap_text(text: str) -> dict[str, Any]:
     """
     if not text:
         return {"hosts": [], "parsed": False, "fallback": "text"}
+    # Positional sweep: walk report + port matches in text order so each
+    # open port attaches to its nearest preceding host report.
+    events: list[tuple[int, str, re.Match]] = (
+        [(m.start(), "host", m) for m in _NMAP_REPORT_RE.finditer(text)]
+        + [(m.start(), "port", m) for m in _NMAP_OPEN_RE.finditer(text)]
+    )
+    events.sort(key=lambda e: e[0])
     host_ports: dict[str, list[dict]] = {}
-    for m in _NMAP_REPORT_RE.finditer(text):
-        name, ip = m.group(1), m.group(2)
-        host_ports.setdefault(ip, [])
-        if name:
-            # attach hostname later as side effect via dict
-            host_ports[ip + "::host"] = [name] if ip + "::host" not in host_ports else host_ports[ip + "::host"]
-    for m in _NMAP_OPEN_RE.finditer(text):
-        port, proto, service, version = int(m.group(1)), m.group(2), m.group(3) or "", m.group(4) or ""
-        # attach to most recent host in text
-        ips = list(host_ports.keys())
-        if not ips:
-            continue
-        last_ip = next((k for k in reversed(ips) if "::" not in k), None)
-        if not last_ip:
-            continue
-        host_ports[last_ip].append({"port": port, "protocol": proto, "state": "open", "service": service, "version": version.strip()})
-    hosts = []
-    for key, ports in host_ports.items():
-        if "::" in key:
-            continue
-        if not ports:
-            continue
-        hosts.append({"ip": key, "hostname": None, "ports": ports})
+    host_names: dict[str, str] = {}
+    order: list[str] = []
+    current: str | None = None
+    for _, kind, m in events:
+        if kind == "host":
+            name, ip = m.group(1), m.group(2)
+            if ip not in host_ports:
+                host_ports[ip] = []
+                order.append(ip)
+            # Don't mistake a bare IP for a hostname
+            if name and not re.fullmatch(r"\d{1,3}(?:\.\d{1,3}){3}", name):
+                host_names.setdefault(ip, name)
+            current = ip
+        else:
+            if current is None:
+                continue
+            port, proto = int(m.group(1)), m.group(2)
+            service, version = m.group(3) or "", (m.group(4) or "").strip()
+            host_ports[current].append({"port": port, "protocol": proto, "state": "open", "service": service, "version": version})
+    hosts = [
+        {"ip": ip, "hostname": host_names.get(ip), "ports": host_ports[ip]}
+        for ip in order if host_ports[ip]
+    ]
     return {"hosts": hosts, "parsed": False, "fallback": "text", "host_count": len(hosts)}

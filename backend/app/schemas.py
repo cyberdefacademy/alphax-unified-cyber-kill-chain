@@ -21,6 +21,8 @@ class EngagementOut(BaseModel):
         from_attributes = True
 
 class EngagementUpdate(BaseModel):
+    name: Optional[str] = None
+    scope_cidr: Optional[str] = None
     status: Optional[str] = None
     current_phase: Optional[int] = None
 

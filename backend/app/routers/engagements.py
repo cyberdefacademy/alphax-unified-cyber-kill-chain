@@ -37,6 +37,14 @@ async def update_engagement(engagement_id: uuid.UUID, body: EngagementUpdate, db
     eng = res.scalars().first()
     if not eng:
         raise HTTPException(404, "engagement not found")
+    if body.name is not None:
+        if not body.name.strip():
+            raise HTTPException(400, "name must not be empty")
+        eng.name = body.name.strip()[:256]
+    if body.scope_cidr is not None:
+        if not body.scope_cidr.strip():
+            raise HTTPException(400, "scope_cidr must not be empty")
+        eng.scope_cidr = body.scope_cidr.strip()[:512]
     if body.status is not None:
         eng.status = body.status
     if body.current_phase is not None:

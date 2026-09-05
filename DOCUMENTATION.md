@@ -410,6 +410,16 @@ AlphaX expects isolated labs (`VULNHUB_TARGETS`, default `192.168.56.0/24,10.0.0
 4. `ping` + `nmap -sV <ip>` from Kali; create engagement with that CIDR.
 5. UI Phase 1 → `nmap` `target=<ip>` `scan_type=-sV -sC` `ports=-p-`.
 
+## 21b. PortSwigger Web Security Academy Labs
+Per-user lab instances (`https://<32-hex>.web-security-academy.net`) launched from the operator's Academy account. **Never scan `portswigger.net` itself** (production portal); only the operator's own live instance is in scope.
+1. Academy → open a lab → **Access the Lab** → copy the instance URL **while it runs** (instances expire after ~1–2h idle).
+2. Verify before locking scope: DNS resolves (wildcard — proves nothing alone) **plus** a single `GET /` returning `200` in <2s. Dead ID pattern: valid TLS + hang/`000` = no lab behind the ID.
+3. Create engagement, then `PATCH /engagements/{id}` with `{"scope_cidr":"<instance host>"}` (retargeting supported since v0.2.0 — `EngagementUpdate` accepts `name` + `scope_cidr`).
+4. Recon gentle-first: `nmap -Pn -sT -p 443 <host>` (single port; **`-sV` probe battery stalls** against the AWS edge — use connect scan + nuclei/nikto for service intel), `nuclei -severity info,low <url>`, `nikto -Tuning 1 -timeout 8 <url>`.
+5. If the lab goes dark mid-engagement (`000`/timeout from direct curl too), it expired — refresh it in the browser, then re-run; do not escalate scan intensity against dead IDs.
+
+**Live-fire notes (2026-09-05, engagement `1c1e71b8`, SQLi WHERE-clause lab):** nmap connect fingerprint `443/tcp open https` (AWS eu-west-1, 1.19s); nuclei `info,low` found `wildcard-dns-detect` only; nikto `exit=0` with `[FAIL] Unable to connect` after expiry (nikto's own exit-code quirk — stdout tells the truth); graph correctly ingested `34.246.129.62` + instance hostname. Bugs fixed during this run: immutable engagement scope (`schemas.py:23` + router now accept `name`/`scope_cidr`), nmap text parser hostname loss + version line-bleed + multi-host mis-attachment (`parsers/nmap_parser.py:43` — `[ \t]+` separators, hostname map, positional sweep).
+
 ## 22. Juice Shop Lab Setup & Test Report
 Local authorized target (OWASP Juice Shop is purpose-built vulnerable):
 
