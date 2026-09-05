@@ -159,18 +159,25 @@ class KaliExecutor:
                 ip = h.get("ip")
                 if not ip:
                     continue
-                # avoid dup
+                # upsert: same IP can be re-used by new infra (shared cloud/lab
+                # IPs), so refresh hostname/ports instead of keeping stale rows
                 existing = await db.execute(select(Target).where(Target.engagement_id == command.engagement_id, Target.ip == ip))
-                if existing.scalars().first():
-                    continue
-                tgt = Target(
-                    engagement_id=command.engagement_id,
-                    ip=ip,
-                    hostname=h.get("hostname"),
-                    ports=h.get("ports"),
-                    discovered_in_phase=command.phase,
-                )
-                db.add(tgt)
+                tgt = existing.scalars().first()
+                if tgt is None:
+                    tgt = Target(
+                        engagement_id=command.engagement_id,
+                        ip=ip,
+                        hostname=h.get("hostname"),
+                        ports=h.get("ports"),
+                        discovered_in_phase=command.phase,
+                    )
+                    db.add(tgt)
+                else:
+                    if h.get("hostname"):
+                        tgt.hostname = h.get("hostname")
+                    if h.get("ports"):
+                        tgt.ports = h.get("ports")
+                    tgt.discovered_in_phase = command.phase
                 if ws_broadcast:
                     try:
                         await ws_broadcast({"type": "knowledge_update", "target": {"ip": ip, "ports": h.get("ports")}})
