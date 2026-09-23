@@ -83,13 +83,13 @@ On **Kali** verified:
 ```
 .
 ├── docker-compose.yml               # postgres:5432 + api:8001 + frontend:3002
-├── .env / .env.example             # DATABASE_URL, JWT_SECRET, ALLOWED_TOOLS (42), VULNHUB_TARGETS
+├── .env / .env.example             # DATABASE_URL, JWT_SECRET, ALLOWED_TOOLS (41), VULNHUB_TARGETS
 ├── backend/
 │   ├── Dockerfile
 │   ├── requirements.txt             # fastapi, uvicorn[standard], sqlalchemy[asyncio], asyncpg, pydantic-settings, python-jose, passlib, bcrypt==4.1.3, websockets, lxml, xmltodict
 │   └── app/
 │       ├── main.py                 # FastAPI lifespan, /health (v0.2.0), CORS, 8 routers
-│       ├── config.py               # Settings via .env, allowed_tools_set (42 defaults)
+│       ├── config.py               # Settings via .env, allowed_tools_set (41 defaults)
 │       ├── database.py             # create_async_engine + async_session + init_db()
 │       ├── models.py               # Engagement/Target/Credential/Command/Result/AssetEdge
 │       ├── schemas.py              # Pydantic DTOs
@@ -139,7 +139,7 @@ JWT_SECRET=change_me_in_prod_alphax_2026_32chars_min  # ← 32+ random chars (op
 JWT_ALGORITHM=HS256
 JWT_EXPIRE_MINUTES=480
 EXECUTOR_MODE=host
-# 42 tools — must cover every ToolSpec.name in killchain_engine.py + nikto/gobuster/dirb/ffuf/feroxbuster/whatweb/wafw00f
+# 41 tools — must cover every ToolSpec.name in killchain_engine.py + nikto/gobuster/dirb/ffuf/feroxbuster/whatweb/wafw00f
 ALLOWED_TOOLS=nmap,masscan,nuclei,msfvenom,msfconsole,msfconsole_handler,curl,setoolkit,gophish,sqlmap,cron,mimikatz,amsi-bypass,sliver,chisel,ssh,ligolo,linpeas,winPEAS,bloodhound,sudo,windows-exploit-suggester,psexec.py,wmiexec.py,secretsdump.py,hashcat,crackmapexec,smbclient,scp,rclone,custom,report,hydra,nikto,winpeas,gobuster,dirb,ffuf,feroxbuster,whatweb,wafw00f
 VULNHUB_TARGETS=192.168.56.0/24,10.0.0.0/24
 CORS_ORIGINS=http://localhost:3002,http://127.0.0.1:3002,http://localhost:3000,http://127.0.0.1:3000
@@ -147,7 +147,7 @@ ALPHAX_OPERATOR_USER=operator
 ALPHAX_OPERATOR_PASSWORD=AlphaX!2026
 ```
 
-`backend/app/config.py:4` loads via `pydantic-settings` (`env_file=".env"`). The code default mirrors the full 42-tool list so fresh clones work even before `.env` is copied.
+`backend/app/config.py:4` loads via `pydantic-settings` (`env_file=".env"`). The code default mirrors the full 41-tool list so fresh clones work even before `.env` is copied.
 
 ## 5. Installation — Option A: Docker (recommended when daemon available)
 
@@ -386,7 +386,7 @@ curl -s http://localhost:8001/api/v1/monitoring/$EID/snapshot -H "Authorization:
 Each `ToolSpec` has `name, template, description, params: ParamSpec[], parser`. `list_phases()` / `get_tools_for_phase()` back `/killchain/*`. State machine: `can_transition` (forward-1 / back-any / stay), auto-advance on success, `blocked_needs_input` on failure.
 
 ## 18. Executor & HITL Gates (`backend/app/executor.py:1`)
-- **Allow-list** (42 tools, §4) + **deny patterns** (`rm -rf /`, `mkfs.`, fork bomb, `dd of=/dev/`, `shutdown`…).
+- **Allow-list** (41 tools, §4) + **deny patterns** (`rm -rf /`, `mkfs.`, fork bomb, `dd of=/dev/`, `shutdown`…).
 - **Assemble** `assemble_command()`: flag params (`scan_type, ports, extra, wordlist, severity`) unquoted + sanitized; data params `shlex.quote`d.
 - **Run** `run_via_subprocess()` (`asyncio.create_subprocess_shell`, per-line WS stream, 300s timeout → exit 124).
 - **Gates** `routers/commands.py:14` `pending_approval → approved → running → succeeded/failed/blocked`; `execute` uses `BackgroundTasks`; `orchestrator.on_command_finished()` auto-advances or blocks (+ `ai_pivot` broadcast).
@@ -447,7 +447,7 @@ docker stop juiceshop-test   # tear down when done
 | Chain | AI `execute-chain` P17→P18 | ✅ 2 steps queued + succeeded |
 | AI/library/monitoring/WS/frontend | all endpoints `200`, build 142 modules 0 errors, 4 themes live | ✅ |
 
-**Fixes from this test:** (1) allow-list widened 35→42 tools (`.env`, `config.py`, `.env.example`); (2) AI pivot branches for gobuster-SPA-wildcard, nikto-no-CGI, sqlmap-not-injectable (`ai_assist.py:340`). Target stayed healthy (`200`) throughout.
+**Fixes from this test:** (1) allow-list widened 35→41 tools (`.env`, `config.py`, `.env.example`); (2) AI pivot branches for gobuster-SPA-wildcard, nikto-no-CGI, sqlmap-not-injectable (`ai_assist.py:340`). Target stayed healthy (`200`) throughout.
 
 ## 23. Full Walkthrough — Juice Shop (Verified)
 ```bash
@@ -472,6 +472,7 @@ Then open `http://localhost:3002/`, login, select the engagement: Monitoring sho
 | `GET /health` refused on 8000 | Port taken (NeuroSploit) | Use `8001`; update `vite.config.ts:10`, `useEngagementWS.ts:11` |
 | Frontend blank / token lost | Wrong proxy port | Match Vite port with `CORS_ORIGINS` + API port; check console WS errors |
 | `nmap` → `Scantype not supported` | Old quoting of `scan_type` | Fixed in `executor.py:35` (flags unquoted) |
+| `nmap` → `Couldn't open a raw socket` | SYN scan as non-root (API uid ≠ 0) | Auto-fixed at creation: `-sT` appended when no explicit scan type (`assemble_for_tool` in `executor.py`); explicit `-sS` still requires root |
 | `400 Tool 'X' not in ALLOWED_TOOLS` | Missing from `.env:16` | Add to `ALLOWED_TOOLS`, restart API (fixed for gobuster/dirb/ffuf/feroxbuster/whatweb/wafw00f in v0.2.0) |
 | `blocked_needs_input` after phase | `orchestrator.py:24` failure gate | Check Live Console + `ai_pivot` suggestions; re-run or PATCH phase |
 | nikto/nuclei seem "stuck" (`running`) | Tool-inherent slowness (nikto ~2min, nuclei template load ~90s) | Wait; executor timeout is 300s (exit 124). Reduce scope (`-Tuning 1`, `-severity info`) |
@@ -485,7 +486,7 @@ Logs: `tail -f /tmp/alphax_api.log /tmp/alphax_front.log` · DB: `psql -h localh
 
 ## 25. Security Considerations
 - **Authorization:** single-operator JWT v0; multi-user needs DB users + RBAC (`routers/auth.py:16`).
-- **Allow-list:** 42 tools minimal; `bash`/`rm` blocked by deny patterns regardless.
+- **Allow-list:** 41 tools minimal; `bash`/`rm` blocked by deny patterns regardless.
 - **Scope:** UI banner + per-engagement `scope_cidr`; add CIDR validation in `can_execute_phase` to hard-reject out-of-scope targets.
 - **Audit:** all commands stored with stdout/stderr/exit/`approved_by`; consider `pgcrypto` for creds.
 - **Isolation:** host executor runs on Kali; untrusted targets → Docker sidecar (`EXECUTOR_MODE=docker`, `kalilinux/kali-rolling` + `NET_RAW`).

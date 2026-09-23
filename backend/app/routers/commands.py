@@ -7,7 +7,7 @@ from ..database import get_db, async_session
 from ..models import Command, Result, Engagement
 from ..schemas import CommandCreate, CommandOut
 from ..killchain_engine import get_tools_for_phase
-from ..executor import KaliExecutor, is_command_allowed, assemble_command
+from ..executor import KaliExecutor, is_command_allowed, assemble_for_tool
 from ..orchestrator import Orchestrator
 from ..routers.auth import get_current_user
 from ..routers.ws import manager
@@ -22,7 +22,7 @@ def build_raw_from_tool(tool_name: str, phase: int, params: dict | None) -> str:
         if params and "target" in params:
             return f"{tool_name} {shlex.quote(str(params['target']))}"
         return tool_name
-    return assemble_command(spec.template, params)
+    return assemble_for_tool(tool_name, spec.template, params)
 
 @router.get("", response_model=list[CommandOut])
 async def list_commands(engagement_id: uuid.UUID, db: AsyncSession = Depends(get_db), user: str = Depends(get_current_user)):

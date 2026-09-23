@@ -7,7 +7,6 @@ from sqlalchemy import select
 from ..database import get_db, async_session
 from ..models import Engagement, Command
 from .. import ai_assist
-from ..executor import assemble_command
 from ..killchain_engine import TOOL_MAPPING, get_tools_for_phase
 from .auth import get_current_user
 from .ws import manager
@@ -147,10 +146,10 @@ async def execute_chain(
     async def _run():
         async with async_session() as sess:
             for s in steps:
-                from ..executor import is_command_allowed
+                from ..executor import is_command_allowed, assemble_for_tool
                 # Build raw command
                 spec = next((t for t in get_tools_for_phase(s.phase) if t.name == s.tool_name), None)
-                raw = assemble_command(spec.template, s.params) if spec else s.tool_name
+                raw = assemble_for_tool(s.tool_name, spec.template, s.params) if spec else s.tool_name
                 allowed, reason = is_command_allowed(raw, s.tool_name)
                 cmd = Command(
                     engagement_id=engagement_id,

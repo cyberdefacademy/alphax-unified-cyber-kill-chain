@@ -1,4 +1,5 @@
 import asyncio
+import os
 import shlex
 import re
 import time
@@ -55,6 +56,33 @@ def assemble_command(template: str, params: dict | None) -> str:
         return template.format(**safe)
     except KeyError:
         return template
+
+# nmap scan-type flags (any explicit choice disables the unprivileged fallback)
+NMAP_SCAN_FLAGS = (
+    "-sS", "-sT", "-sU", "-sN", "-sF", "-sX", "-sA", "-sW", "-sM",
+    "-sO", "-sY", "-sZ", "-sn", "-sL", "--unprivileged",
+)
+
+def assemble_for_tool(tool_name: str, template: str, params: dict | None) -> str:
+    """Assemble a raw command for a tool, applying safe environment defaults.
+
+    Runs at creation time (pre-approval) so the operator previews and
+    approves exactly what will execute. Currently handles one case:
+    nmap defaults to a raw-socket SYN scan which fails with
+    "Couldn't open a raw socket" when the API runs unprivileged
+    (non-root Kali host). If no explicit scan type is given, append -sT
+    (connect scan) so default Recon scans succeed for any euid.
+    Raw-command overrides bypass this (operator's explicit responsibility).
+    """
+    raw = assemble_command(template, params)
+    if tool_name == "nmap" and os.geteuid() != 0:
+        try:
+            tokens = shlex.split(raw)
+        except ValueError:
+            tokens = raw.split()
+        if not any(flag in tokens for flag in NMAP_SCAN_FLAGS):
+            raw = f"{raw} -sT"
+    return raw
 
 async def run_via_subprocess(raw_command: str, timeout: int = 300, on_line: Optional[Callable[[str], None]] = None) -> tuple[str, str, int]:
     """Execute raw_command via shell on host Kali, streaming lines to on_line."""

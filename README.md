@@ -39,4 +39,4 @@ curl -s -X POST http://localhost:8001/api/v1/engagements -H "Authorization: Bear
 - API Swagger: `http://localhost:8001/docs`  Health: `http://localhost:8001/health`  WS: `ws://localhost:8001/ws/engagements/{id}`
 - 18 phases/tools: `backend/app/killchain_engine.py:64`  Executor: `backend/app/executor.py:35`  AI: `backend/app/ai_assist.py:1`  Library: `backend/app/scripts_library.py:1`
 
-> **AUTHORIZED ENGAGEMENTS ONLY** — scope per engagement, 42-tool allow-list `ALLOWED_TOOLS`, deny patterns, JWT. AI chains auto-approve only after explicit operator launch.
+> **AUTHORIZED ENGAGEMENTS ONLY** — scope per engagement, 41-tool allow-list `ALLOWED_TOOLS`, deny patterns, JWT. AI chains auto-approve only after explicit operator launch.
