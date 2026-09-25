@@ -215,6 +215,8 @@ curl -s http://localhost:8001/ | python3 -m json.tool
 curl -s -I http://localhost:3002/ | head -n 3
 ```
 
+![API Swagger docs](docs/screenshots/shot-swagger.png)
+
 ## 9. Authentication (Single-Operator JWT)
 `backend/app/routers/auth.py:16` uses `OAuth2PasswordBearer` + `passlib`/`bcrypt` + `python-jose`.
 
@@ -271,6 +273,10 @@ Open `http://localhost:3002/` (hard refresh after upgrades: `Ctrl+Shift+R`).
 **AttackFlow** (`AttackFlow.tsx:1`): 18 buttons, accent = current, success = completed. Click opens that phase's panel.
 **PhasePanel** (`PhasePanel.tsx:1`): tool dropdown from `TOOL_MAPPING`, dynamic param form, template preview, **raw-command override** input (bypasses template assembly, still allow-listed), then `1. Create → 2. Approve ✓ → 3. Execute ▶`.
 **PreselectPanel** (see §14), **AIAssistPanel** (see §13), **MonitoringWindow** + **VisualAnalytics** (see §15), **LiveConsole** (see §20), **KnowledgeGraph**, **Recent Commands**.
+
+![War Room login](docs/screenshots/shot-login.png)
+
+![War Room authenticated with engagement, AttackFlow and monitoring](docs/screenshots/shot-warroom.png)
 
 ## 12. Dashboard Themes
 `ThemeSwitcher.tsx:1` + `index.css:1` CSS-variable engine. Four professional themes, persisted in `localStorage:alphax_theme`, applied as `data-theme` on `<html>`:
@@ -388,6 +394,7 @@ Each `ToolSpec` has `name, template, description, params: ParamSpec[], parser`. 
 ## 18. Executor & HITL Gates (`backend/app/executor.py:1`)
 - **Allow-list** (41 tools, §4) + **deny patterns** (`rm -rf /`, `mkfs.`, fork bomb, `dd of=/dev/`, `shutdown`…).
 - **Assemble** `assemble_command()`: flag params (`scan_type, ports, extra, wordlist, severity`) unquoted + sanitized; data params `shlex.quote`d.
+- **Unprivileged nmap fallback** `assemble_for_tool()`: when the API runs non-root and no explicit scan type is given, `-sT` (connect scan) is appended at creation time — so default Recon scans succeed instead of failing with `Couldn't open a raw socket`. Runs pre-approval (operator previews/approves the final string); explicit `-sS`/raw overrides untouched.
 - **Run** `run_via_subprocess()` (`asyncio.create_subprocess_shell`, per-line WS stream, 300s timeout → exit 124).
 - **Gates** `routers/commands.py:14` `pending_approval → approved → running → succeeded/failed/blocked`; `execute` uses `BackgroundTasks`; `orchestrator.on_command_finished()` auto-advances or blocks (+ `ai_pivot` broadcast).
 
